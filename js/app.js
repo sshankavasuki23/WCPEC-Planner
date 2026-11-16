@@ -1,6 +1,6 @@
 import { chronological, dayLabel, loadProgramme, longDay, normalize, roomLabel, timeLabel, typeLabel } from './programme.js';
 import { conflicts, restoreAgenda, saveAgenda, storageKey } from './agenda.js';
-import { agendaCalendar, downloadCalendar } from './export.js?v=agenda-details-1';
+import { agendaCalendar, downloadCalendar } from './export.js?v=agenda-typography-1';
 import { sessionColors } from './track-colors.js';
 
 const byId = (id) => document.getElementById(id);

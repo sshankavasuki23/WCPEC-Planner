@@ -51,6 +51,22 @@ function wrap(ctx, value, maxWidth, firstWidth) {
   return lines;
 }
 
+function fitAuthors(ctx, authors, width) {
+  if (!authors.length) return 'Not specified';
+  const fullList = authors.join(', ');
+  if (ctx.measureText(fullList).width <= width) return fullList;
+
+  let visible = 'et al.';
+  let names = '';
+  for (const author of authors.slice(0, -1)) {
+    names = names ? `${names}, ${author}` : author;
+    const shortened = `${names}, et al.`;
+    if (ctx.measureText(shortened).width > width) break;
+    visible = shortened;
+  }
+  return visible;
+}
+
 function intervals(items) {
   const slots = new Map();
   const unscheduled = [];
@@ -86,31 +102,32 @@ function makeClusters(slots) {
 }
 
 function measureCard(ctx, item, session, width, compact, shared) {
-  const titleSize = compact ? 24 : 29;
-  const smallSize = compact ? 18 : 21;
-  const smallLine = smallSize + 5;
+  const textSize = compact ? 18 : 21;
+  const lineHeight = textSize + 5;
   const padding = compact ? 14 : 18;
   const contentWidth = width - padding * 2 - 5;
   const stamp = shared || !item.start || !item.end ? item.code || '' : timeLabel(item);
   const code = !shared && item.start && item.end ? item.code : null;
-  font(ctx, 650, smallSize);
+  font(ctx, 650, textSize);
   const codeBelow = Boolean(code && ctx.measureText(stamp).width + ctx.measureText(code).width + 22 > contentWidth);
-  const stampHeight = smallLine * (codeBelow ? 2 : 1);
+  const stampHeight = lineHeight * (codeBelow ? 2 : 1);
   const fields = [
-    ['Session:', session?.title, smallSize, 480],
-    ['Presentation:', item.title, titleSize, 600],
-    ['Authors:', item.authors.join(', '), smallSize, 480],
-    ['Location:', roomLabel(session), smallSize, 600],
-  ].map(([label, value, size, weight]) => {
-    font(ctx, 600, smallSize);
+    ['Session:', session?.title, 480],
+    ['Presentation:', item.title, 600],
+    ['Authors:', item.authors, 480],
+    ['Location:', roomLabel(session), 600],
+  ].map(([label, value, weight]) => {
+    font(ctx, 600, textSize);
     const labelWidth = ctx.measureText(label).width + 8;
-    font(ctx, weight, size);
-    const lines = wrap(ctx, value || 'Not specified', contentWidth, contentWidth - labelWidth);
-    return { label, labelWidth, lines, size, weight, leading: size + (size === titleSize ? 7 : 5) };
+    const firstWidth = contentWidth - labelWidth;
+    font(ctx, weight, textSize);
+    const lines = Array.isArray(value) ? [fitAuthors(ctx, value, firstWidth)]
+      : wrap(ctx, value || 'Not specified', contentWidth, firstWidth);
+    return { label, labelWidth, lines, weight };
   });
   const height = padding * 2 + stampHeight + 3
-    + fields.reduce((sum, field) => sum + field.lines.length * field.leading + 3, 0);
-  return { item, width, height, fields, smallSize, smallLine, padding, stamp, code, codeBelow, stampHeight,
+    + fields.reduce((sum, field) => sum + field.lines.length * lineHeight + 3, 0);
+  return { item, width, height, fields, textSize, lineHeight, padding, stamp, code, codeBelow, stampHeight,
     colors: sessionColors(session) };
 }
 
@@ -204,28 +221,28 @@ function drawCard(ctx, card, x, y, width, height, conflicts) {
   const left = x + card.padding + 5;
   const top = y + card.padding;
   ctx.fillStyle = conflicts.has(card.item.id) ? palette.conflict : palette.muted;
-  font(ctx, 650, card.smallSize);
-  ctx.fillText(card.stamp, left, top + card.smallSize);
+  font(ctx, 650, card.textSize);
+  ctx.fillText(card.stamp, left, top + card.textSize);
   if (card.codeBelow) {
-    ctx.fillText(card.code, left, top + card.smallLine + card.smallSize);
+    ctx.fillText(card.code, left, top + card.lineHeight + card.textSize);
   } else if (card.code) {
     ctx.textAlign = 'right';
-    ctx.fillText(card.code, x + width - card.padding, top + card.smallSize);
+    ctx.fillText(card.code, x + width - card.padding, top + card.textSize);
     ctx.textAlign = 'left';
   }
 
   let row = top + card.stampHeight + 3;
   for (const field of card.fields) {
-    const baseline = row + field.size;
+    const baseline = row + card.textSize;
     ctx.fillStyle = palette.muted;
-    font(ctx, 600, card.smallSize);
+    font(ctx, 600, card.textSize);
     ctx.fillText(field.label, left, baseline);
     ctx.fillStyle = field.weight === 600 ? palette.ink : palette.muted;
-    font(ctx, field.weight, field.size);
+    font(ctx, field.weight, card.textSize);
     for (const [index, line] of field.lines.entries()) {
-      ctx.fillText(line, index === 0 ? left + field.labelWidth : left, baseline + index * field.leading);
+      ctx.fillText(line, index === 0 ? left + field.labelWidth : left, baseline + index * card.lineHeight);
     }
-    row += field.lines.length * field.leading + 3;
+    row += field.lines.length * card.lineHeight + 3;
   }
 }
 

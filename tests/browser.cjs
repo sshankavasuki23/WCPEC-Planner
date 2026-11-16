@@ -194,8 +194,9 @@ async function functional(browser) {
   await context.close();
 }
 
-async function calendarFields(browser, sample, code) {
+async function calendarFields(browser, { code, authorCount, abbreviated, longTitle = false }) {
   const item = dataset.presentations.find((record) => record.code === code);
+  assert.equal(item.authors.length, authorCount);
   const session = dataset.sessions.find((record) => record.id === item.sessionId);
   const context = await browser.newContext({
     viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, acceptDownloads: true,
@@ -206,34 +207,57 @@ async function calendarFields(browser, sample, code) {
     window.calendarText = [];
     const original = CanvasRenderingContext2D.prototype.fillText;
     CanvasRenderingContext2D.prototype.fillText = function (text, x, y, ...args) {
-      window.calendarText.push(text);
+      window.calendarText.push({ text, x, y, font: this.font });
       return original.call(this, text, x, y, ...args);
     };
   }, { key: storageKey, id: item.id });
   await page.goto(base + '#agenda');
-  await openPreview(page);
+  const preview = await openPreview(page);
   await noOverflow(page);
 
   const drawn = await page.evaluate(() => window.calendarText);
+  const timeIndex = drawn.findIndex(({ text }) => text === `${item.start}–${item.end}`);
+  assert(timeIndex >= 0);
+  const block = drawn.slice(timeIndex);
+  const texts = block.map(({ text }) => text);
+  assert.equal(texts[1], code);
+  assert(block.every(({ font }) => font.includes('21px ')), 'Every regular block label and value must use the session size');
+
   const fields = [
     ['Session:', session.title],
     ['Presentation:', item.title],
     ['Authors:', item.authors.join(', ')],
     ['Location:', session.room],
   ];
-  assert(drawn.includes(`${item.start}–${item.end}`));
-  assert(drawn.includes(code));
   for (const [index, [label, value]] of fields.entries()) {
-    const start = drawn.indexOf(label);
-    const end = index + 1 < fields.length ? drawn.indexOf(fields[index + 1][0]) : drawn.length;
+    const start = texts.indexOf(label);
+    const end = index + 1 < fields.length ? texts.indexOf(fields[index + 1][0]) : texts.length;
     assert(start >= 0 && end > start, `Missing or out-of-order calendar field ${label}`);
-    const lines = drawn.slice(start + 1, end).filter(Boolean);
-    assert.equal(lines.join(' '), value.replace(/\s+/g, ' '));
-    if (sample === 'long' && label !== 'Location:') {
-      assert(lines.length > 1, `Long calendar field did not wrap ${label}`);
+    const lines = texts.slice(start + 1, end).filter(Boolean);
+    if (label === 'Authors:') {
+      assert.equal(end, start + 2, 'Authors must occupy one visual line');
+      const names = block[start + 1];
+      assert.equal(names.y, block[start].y, 'Names must share the label baseline');
+      const candidates = [value, ...item.authors.slice(0, -1).map((_, index) =>
+        item.authors.slice(0, index + 1).join(', ') + ', et al.').reverse(), 'et al.'];
+      const available = block[1].x - names.x;
+      const expected = await page.evaluate(({ font, candidates, available }) => {
+        const ctx = document.createElement('canvas').getContext('2d');
+        ctx.font = font;
+        return candidates.find((text) => ctx.measureText(text).width <= available);
+      }, { font: names.font, candidates, available });
+      assert.equal(names.text, expected, 'Show the longest whole-name prefix that fits');
+      assert.equal(names.text.endsWith('et al.'), abbreviated);
+    } else {
+      assert.equal(lines.join(' '), value.replace(/\s+/g, ' '));
+      if (longTitle && label === 'Presentation:') assert(lines.length > 1, 'Long titles must wrap');
     }
   }
-  await verifyPng(page, `WCPEC9-Agenda-${item.date}.png`, sample, 1);
+
+  await verifyPng(page, `WCPEC9-Agenda-${item.date}.png`, code, 1);
+  await preview.getByRole('button', { name: 'Close', exact: true }).click();
+  await page.locator('.agenda-list .talk-open').click();
+  assert.equal(await page.locator('#detail-content .authors').textContent(), item.authors.join(', '));
   await context.close();
 }
 
@@ -275,7 +299,7 @@ async function calendarStress(browser, selection) {
 async function geometry(browser) {
   const page = await browser.newPage();
   await page.goto(base);
-  const data = await page.evaluate(async () => {
+  const { data, longAuthor } = await page.evaluate(async () => {
     const { agendaCalendar } = await import('./js/export.js');
     const { loadProgramme } = await import('./js/programme.js');
     const programme = await loadProgramme();
@@ -285,12 +309,16 @@ async function geometry(browser) {
     const calls = [];
     const original = CanvasRenderingContext2D.prototype.fillText;
     CanvasRenderingContext2D.prototype.fillText = function (text, x, y) {
-      calls.push({ text, x, y });
+      calls.push({ text, x, y, font: this.font });
       return original.call(this, text, x, y);
     };
     try {
       agendaCalendar(day, items, programme.sessionById).renderPreview();
-      return calls;
+      const data = calls.splice(0);
+      const item = { ...items[2], authors: ['An unusually long author name '.repeat(12)] };
+      agendaCalendar(day, [item], programme.sessionById).renderPreview();
+      const label = calls.findIndex(({ text }) => text === 'Authors:');
+      return { data, longAuthor: calls[label + 1]?.text };
     } finally {
       CanvasRenderingContext2D.prototype.fillText = original;
     }
@@ -303,6 +331,16 @@ async function geometry(browser) {
   assert(text('08:30–08:50')[0].y < overlaps[0].y);
   assert(text('18:00–19:00  ·  Poster session')[0].y > overlaps[0].y);
   assert(text('DCC 2, Exhibition Hall').length >= 2);
+  assert.equal(longAuthor, 'et al.', 'An unusually long name must be omitted as a whole');
+  const posterStart = data.findIndex(({ text }) => text.includes('·  Poster session'));
+  const posterText = data.slice(posterStart + 1).filter(({ x }) => x >= 136);
+  assert(posterText.every(({ font }) => font.includes('18px ')), 'Compact cards use one font size');
+  assert.equal(posterText.filter(({ text }) => text === 'Authors:').length, 2);
+  posterText.forEach(({ text, y }, index) => {
+    if (text !== 'Authors:') return;
+    assert.equal(posterText[index + 1].y, y);
+    assert.equal(posterText[index + 2].text, 'Location:');
+  });
   const [nine] = text('09:00');
   const [nineThirty] = text('09:30');
   assert(nine.y < overlaps[0].y && overlaps[0].y < nineThirty.y);
@@ -417,9 +455,14 @@ async function reliability(browser) {
   }
   await run(functional);
   await run(geometry);
-  await run((browser) => calendarFields(browser, 'single-short', 'TS-F-1'));
-  await run((browser) => calendarFields(browser, 'long', '1CO.5-IV-1'));
-  await run((browser) => calendarFields(browser, 'single-poster', '3-2-BP-01'));
+  for (const sample of [
+    { code: 'TS-F-1', authorCount: 1, abbreviated: false },
+    { code: '1DO.8-IV-2', authorCount: 3, abbreviated: false },
+    { code: '6CO.7-OP-1', authorCount: 6, abbreviated: true },
+    { code: '4AO.1-OP-4', authorCount: 11, abbreviated: true, longTitle: true },
+    { code: '1CO.5-IV-1', authorCount: 20, abbreviated: true },
+    { code: '3-2-BP-01', authorCount: 12, abbreviated: true },
+  ]) await run((browser) => calendarFields(browser, sample));
   await run((browser) => calendarStress(browser, 'calendar'));
   await run((browser) => calendarStress(browser, 'posters'));
   await run((browser) => calendarStress(browser, 'full'));
