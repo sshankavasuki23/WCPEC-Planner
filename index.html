@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#f4f5f8">
+  <meta name="theme-color" content="#f4f2ee">
   <meta name="description" content="Browse the WCPEC-9 programme and build a personal agenda for Daejeon, 15–20 November 2026.">
   <title>WCPEC-9 Conference Planner</title>
   <link rel="stylesheet" href="./css/styles.css">
@@ -12,28 +12,28 @@
 <body>
   <svg class="optics" width="0" height="0" aria-hidden="true" focusable="false">
     <filter id="glass-refraction" x="-5%" y="-20%" width="110%" height="140%" color-interpolation-filters="sRGB">
-      <feTurbulence type="fractalNoise" baseFrequency=".012 .036" numOctaves="1" seed="12" result="surface"/>
-      <feDisplacementMap in="SourceGraphic" in2="surface" scale="5" xChannelSelector="R" yChannelSelector="G"/>
+      <feTurbulence type="fractalNoise" baseFrequency=".009 .028" numOctaves="1" seed="12" result="surface"/>
+      <feDisplacementMap in="SourceGraphic" in2="surface" scale="8" xChannelSelector="R" yChannelSelector="G"/>
     </filter>
   </svg>
   <a class="skip" href="#main">Skip to content</a>
-  <header class="masthead">
+  <header class="masthead glass refractive">
     <div class="masthead-inner">
       <a class="brand" href="#programme" aria-label="WCPEC-9 Programme">
         <span class="brand-mark" aria-hidden="true"></span>
         <span><strong>WCPEC-9</strong><small>Conference Planner</small></span>
       </a>
-      <nav id="navigation" class="glass refractive" aria-label="Planner views">
-        <a href="#programme" data-view="programme" aria-current="page">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="6" width="16" height="14" rx="2"/><path d="M8 4v4m8-4v4M4 11h16"/></svg> Programme
-        </a>
-        <a href="#agenda" data-view="agenda">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 5a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v15l-6-4-6 4z"/></svg> My Agenda <span id="nav-count"></span>
-        </a>
-      </nav>
       <span class="location">Daejeon, South Korea</span>
     </div>
   </header>
+  <nav id="navigation" class="glass refractive" aria-label="Planner views">
+    <a href="#programme" data-view="programme" aria-current="page">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="6" width="16" height="14" rx="2"/><path d="M8 4v4m8-4v4M4 11h16"/></svg> Programme
+    </a>
+    <a href="#agenda" data-view="agenda">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 5a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v15l-6-4-6 4z"/></svg> My Agenda <span id="nav-count"></span>
+    </a>
+  </nav>
   <main id="main" tabindex="-1">
     <section class="intro">
       <p id="context-label" class="eyebrow">15–20 November 2026 <span>·</span> Korea Standard Time</p>
@@ -53,6 +53,18 @@
       <button id="detail-close" type="button" class="button subtle" aria-label="Close details">Close <span aria-hidden="true">×</span></button>
     </div>
     <div id="detail-content"></div>
+  </dialog>
+  <dialog id="agenda-preview" class="preview-dialog" aria-labelledby="preview-title">
+    <div class="dialog-bar preview-bar glass">
+      <div class="preview-heading">
+        <h2 id="preview-title">Agenda card</h2>
+        <p id="preview-date"></p>
+      </div>
+      <button id="preview-close" type="button" class="button subtle" autofocus>Close</button>
+      <button id="preview-download" type="button" class="button primary">Download PNG</button>
+    </div>
+    <div id="preview-status" class="export-status" role="status"></div>
+    <div id="preview-image" class="card-preview" role="img"></div>
   </dialog>
   <dialog id="clear-dialog" class="confirm" aria-labelledby="clear-title">
     <h2 id="clear-title">Clear My Agenda?</h2>

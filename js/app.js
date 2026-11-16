@@ -1,11 +1,16 @@
 import { chronological, dayLabel, loadProgramme, longDay, normalize, roomLabel, timeLabel, typeLabel } from './programme.js';
 import { conflicts, restoreAgenda, saveAgenda, storageKey } from './agenda.js';
-import { agendaCards, downloadCard } from './export.js';
+import { agendaCalendar, downloadCalendar } from './export.js';
+import { sessionColors } from './track-colors.js';
 
 const byId = (id) => document.getElementById(id);
 const content = byId('content');
 const dialog = byId('details');
 const clearDialog = byId('clear-dialog');
+const previewDialog = byId('agenda-preview');
+const previewDownload = byId('preview-download');
+let previewCalendar;
+let previewRequest;
 const views = { programme: 'Programme', agenda: 'My Agenda' };
 const state = {
   view: 'programme', programmeDate: '', agendaDate: '', filters: {}, filtersOpen: false,
@@ -46,7 +51,7 @@ function sessionRoom(session) {
 }
 
 function dateControls(key) {
-  const nav = element('div', 'dates glass');
+  const nav = element('div', 'dates glass refractive');
   nav.setAttribute('role', 'group');
   nav.setAttribute('aria-label', key === 'agendaDate' ? 'Agenda dates' : 'Programme dates');
   for (const date of programme.dates) {
@@ -79,10 +84,17 @@ function badge(type) {
   return element('span', 'type type-' + type, typeLabel(type));
 }
 
+function trackColor(node, session) {
+  const [accent, fill] = sessionColors(session);
+  node.style.setProperty('--track-accent', accent);
+  node.style.setProperty('--track-fill', fill);
+}
+
 function sessionCard(session) {
   const count = programme.bySession.get(session.id).length;
   const card = button('', 'session-card', (event) => showDetails('session', session.id, event.currentTarget));
   card.setAttribute('aria-haspopup', 'dialog');
+  trackColor(card, session);
   const meta = session.code ? [element('span', 'code', session.code), badge(session.type)] : [badge(session.type)];
   const summary = [sessionRoom(session), count ? `${count} talk${count === 1 ? '' : 's'}` : ''].filter(Boolean).join(' · ');
   const arrow = element('span', 'session-arrow');
@@ -124,6 +136,14 @@ function groupedSessions(sessions) {
       element('span', 'time-summary-text', [element('strong', '', label), ...(context ? [element('span', '', context)] : [])]),
       chevron,
     ]);
+    const colors = [...new Set(entries.map((item) => sessionColors(item)[0]))];
+    const swatches = element('span', 'track-swatches', colors.map((color) => {
+      const swatch = element('span', '');
+      swatch.style.backgroundColor = color;
+      return swatch;
+    }));
+    swatches.setAttribute('aria-hidden', 'true');
+    summary.insertBefore(swatches, chevron);
     block.append(summary, element('div', 'session-list', entries.map(sessionCard)));
     block.addEventListener('toggle', () => {
       if (block.open) expanded.add(start);
@@ -157,6 +177,7 @@ function selectionButton(item, compact) {
 function talkRow(item, options = {}) {
   const parent = programme.sessionById.get(item.sessionId);
   const article = element('article', 'talk-row surface');
+  trackColor(article, parent);
   const detailButton = button('', 'talk-open', (event) => showDetails('talk', item.id, event.currentTarget, options.inside ? parent.id : null));
   const meta = [badge(item.type)];
   if (item.code) meta.push(element('span', 'code', item.code));
@@ -230,7 +251,7 @@ function renderProgramme() {
     query.focus({ preventScroll: true });
   });
   reset.id = 'clear-filters';
-  const toolbar = element('div', 'search-controls glass', [
+  const toolbar = element('div', 'search-controls glass refractive', [
     element('div', 'search-line', [queryLabel, filterButton]), filters,
   ]);
   const days = dateControls('programmeDate');
@@ -303,64 +324,56 @@ function renderAgenda() {
   }
   const list = element('div', 'talk-list agenda-list',
     items.map((item) => talkRow(item, { agenda: true, overlap: overlapping.has(item.id) })));
-  const preview = element('section', 'export-panel surface');
-  preview.id = 'agenda-preview';
-  preview.tabIndex = -1;
-  preview.append(element('h3', '', 'Daily agenda card'));
-  const cards = agendaCards(day, items, programme.sessionById);
-  let cardIndex = 0;
-  let visibleCard;
-  const status = element('p', 'export-status', '');
-  status.setAttribute('role', 'status');
-  const frame = element('div', 'card-preview');
-  const pagination = element('div', 'pagination');
-  const download = button('', 'button primary', async () => {
-    try {
-      await downloadCard(visibleCard, day, cardIndex, cards.length);
-      status.textContent = 'PNG download started.';
-    } catch {
-      status.textContent = 'Could not create the PNG. Please try again.';
-    }
-  });
-  function showCard() {
-    visibleCard = cards[cardIndex]();
-    frame.replaceChildren(visibleCard);
-    download.textContent = cards.length > 1 ? `Download part ${cardIndex + 1} PNG` : 'Download PNG';
-    status.textContent = '';
-    previous.disabled = cardIndex === 0;
-    next.disabled = cardIndex === cards.length - 1;
-    pageNumber.textContent = `Part ${cardIndex + 1} of ${cards.length}`;
-  }
-  const previous = button('Previous', 'button subtle', () => { cardIndex--; showCard(); });
-  const next = button('Next', 'button subtle', () => { cardIndex++; showCard(); });
-  const pageNumber = element('span', '', '');
-  pageNumber.setAttribute('aria-live', 'polite');
-  if (cards.length > 1) pagination.append(previous, pageNumber, next);
-  const actions = element('div', 'actions', [download]);
-  if (cards.length > 1) {
-    actions.append(button('Download all PNGs', 'button subtle', async () => {
-      try {
-        for (const [index, card] of cards.entries()) {
-          await downloadCard(card(), day, index, cards.length);
-        }
-        status.textContent = 'Download requests sent. If your browser blocks multiple files, download each part from its preview.';
-      } catch {
-        status.textContent = 'Some cards could not be downloaded. Use each part’s download button to retry.';
-      }
-    }));
-  }
-  if (cards.length > 1) {
-    preview.append(element('p', 'saved-note', 'This selection is too long for one readable image. Download the numbered parts in order.'));
-  }
-  frame.tabIndex = 0;
-  frame.setAttribute('aria-label', 'Agenda image preview');
-  preview.append(actions, pagination, frame, status);
-  showCard();
-  content.append(button('Preview agenda card', 'button subtle jump-preview', () => {
-    preview.scrollIntoView({ block: 'start' });
-    preview.focus({ preventScroll: true });
-  }), element('div', 'agenda-layout', [list, preview]));
+  const preview = button('Preview agenda card', 'button primary preview-trigger',
+    () => openAgendaPreview(day, items, overlapping));
+  preview.setAttribute('aria-haspopup', 'dialog');
+  content.append(preview, list);
 }
+
+function openAgendaPreview(day, items, overlapping) {
+  const frame = byId('preview-image');
+  byId('preview-date').textContent = longDay(day);
+  byId('preview-status').textContent = 'Preparing preview…';
+  previewDownload.disabled = true;
+  const request = Symbol();
+  previewRequest = request;
+  previewDialog.showModal();
+  previewDialog.scrollTop = 0;
+  // Let the sheet paint before typesetting a full conference day.
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    if (!previewDialog.open || previewRequest !== request) return;
+    try {
+      previewCalendar = agendaCalendar(day, items, programme.sessionById, overlapping);
+      frame.setAttribute('aria-label', `Calendar for ${longDay(day)}, ${items.length} saved presentation${items.length === 1 ? '' : 's'}`);
+      frame.replaceChildren(...previewCalendar.renderPreview());
+      byId('preview-status').textContent = '';
+      previewDownload.disabled = false;
+    } catch {
+      byId('preview-status').textContent = 'The calendar could not be rendered. Close and reopen the preview to retry.';
+    }
+  }));
+}
+
+previewDownload.addEventListener('click', async () => {
+  const calendar = previewCalendar;
+  const status = byId('preview-status');
+  previewDownload.disabled = true;
+  status.textContent = 'Preparing PNG…';
+  try {
+    await downloadCalendar(calendar);
+    if (previewCalendar === calendar) status.textContent = 'PNG download started.';
+  } catch {
+    if (previewCalendar === calendar) status.textContent = 'Could not create the PNG. Please try again.';
+  } finally {
+    if (previewCalendar === calendar) previewDownload.disabled = false;
+  }
+});
+byId('preview-close').addEventListener('click', () => previewDialog.close());
+previewDialog.addEventListener('close', () => {
+  if (previewDialog.open) return;
+  previewCalendar = undefined;
+  byId('preview-image').replaceChildren();
+});
 
 function showDetails(kind, id, origin, sessionId = null) {
   if (!dialog.open) {
@@ -466,6 +479,7 @@ function navigate(scroll = false) {
   if (key === 'main') return;
   state.view = Object.prototype.hasOwnProperty.call(views, key) ? key : 'programme';
   if (dialog.open) dialog.close();
+  if (previewDialog.open) previewDialog.close();
   render();
   if (scroll) window.scrollTo({ top: 0, behavior: 'auto' });
   if (key === 'explore') content.querySelector('.query')?.focus({ preventScroll: true });

@@ -1,6 +1,7 @@
 const assert = require('node:assert/strict');
 const fs = require('node:fs/promises');
 const path = require('node:path');
+const zlib = require('node:zlib');
 const { chromium } = require(process.env.WCPEC_PLAYWRIGHT_MODULE || 'playwright');
 
 const base = process.env.WCPEC_TEST_URL || 'http://localhost:8000/';
@@ -30,17 +31,66 @@ async function save(page, code) {
   await page.locator(`[data-save="${monday}-${code}"]`).click();
 }
 
-async function verifyPng(page, label, name) {
-  const expected = await page.locator('.card-preview canvas').evaluate((canvas) => canvas.toDataURL('image/png').split(',')[1]);
-  const [download] = await Promise.all([page.waitForEvent('download'), page.getByRole('button', { name: label, exact: true }).click()]);
+async function openPreview(page) {
+  assert.equal(await page.getByRole('button', { name: 'Download PNG' }).count(), 0);
+  await page.getByRole('button', { name: 'Preview agenda card' }).click();
+  const preview = page.getByRole('dialog', { name: 'Agenda card' });
+  await preview.locator('canvas').first().waitFor();
+  return preview;
+}
+
+async function verifyPng(page, name, label, expectedCount) {
+  const preview = page.getByRole('dialog', { name: 'Agenda card' });
+  const frame = preview.getByRole('img');
+  assert((await frame.getAttribute('aria-label')).endsWith(`, ${expectedCount} saved presentations`));
+  const tiles = frame.locator('canvas');
+  const expected = await tiles.count() === 1
+    ? await tiles.first().evaluate((canvas) => canvas.toDataURL('image/png').split(',')[1]) : null;
+  const downloads = [];
+  const record = (file) => downloads.push(file);
+  page.on('download', record);
+  const [download] = await Promise.all([page.waitForEvent('download'), preview.getByRole('button', { name: 'Download PNG' }).click()]);
   assert.equal(download.suggestedFilename(), name);
-  const file = path.join(output, label === 'Download PNG' ? `single-${await page.locator('.agenda-list .talk-row').count()}-${name}` : name);
+  const file = path.join(output, label + '-' + name);
   await download.saveAs(file);
+  await preview.getByText('PNG download started.').waitFor();
+  page.off('download', record);
+  assert.equal(downloads.length, 1);
   const buffer = await fs.readFile(file);
   assert.equal(buffer.subarray(0, 8).toString('hex'), '89504e470d0a1a0a');
-  assert.equal(buffer.readUInt32BE(16), 1080);
-  assert(buffer.equals(Buffer.from(expected, 'base64')), 'Downloaded PNG pixels must match live canvas preview');
-  return buffer.readUInt32BE(20);
+  const width = buffer.readUInt32BE(16);
+  const height = buffer.readUInt32BE(20);
+  if (expected) {
+    const samePixels = await page.evaluate(async ([first, second]) => {
+      const checks = [];
+      for (const source of [first, second]) {
+        const response = await fetch('data:image/png;base64,' + source);
+        const bitmap = await createImageBitmap(await response.blob());
+        const canvas = document.createElement('canvas');
+        canvas.width = bitmap.width;
+        canvas.height = bitmap.height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(bitmap, 0, 0);
+        const pixels = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+        checks.push(Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', pixels))).join(','));
+        bitmap.close();
+      }
+      return checks[0] === checks[1];
+    }, [expected, buffer.toString('base64')]);
+    assert(samePixels, 'Downloaded PNG pixels must match the live canvas preview');
+  } else {
+    const compressed = [];
+    for (let i = 8; i < buffer.length;) {
+      const size = buffer.readUInt32BE(i);
+      const chunk = buffer.toString('ascii', i + 4, i + 8);
+      if (chunk === 'IDAT') compressed.push(buffer.subarray(i + 8, i + 8 + size));
+      i += size + 12;
+    }
+    assert.equal(buffer[25], 2, 'Strip PNG must use RGB');
+    assert.equal(zlib.inflateSync(Buffer.concat(compressed)).length, (width * 3 + 1) * height);
+  }
+  console.log(`One PNG for ${expectedCount} talks: ${width}×${height}.`);
+  return { width, height };
 }
 
 async function functional(browser) {
@@ -58,7 +108,11 @@ async function functional(browser) {
   await page.screenshot({ path: path.join(output, 'desktop.png') });
   const parallel = page.locator('.time-summary').filter({ hasText: '15:00 start' });
   await parallel.click();
-  await page.locator('.time-block[open] .session-card').filter({ hasText: '2AO.1' }).waitFor();
+  const silicon = page.locator('.time-block[open] .session-card').filter({ hasText: '2AO.1' });
+  await silicon.waitFor();
+  assert.equal(await silicon.evaluate((element) => getComputedStyle(element).borderLeftColor), 'rgb(53, 132, 108)');
+  const perovskite = page.locator('.time-block[open] .session-card').filter({ hasText: '3AO.1' });
+  assert.equal(await perovskite.evaluate((element) => getComputedStyle(element).borderLeftColor), 'rgb(173, 102, 59)');
   const loadMs = await page.evaluate(() => {
     const file = performance.getEntriesByType('resource').find((entry) => entry.name.endsWith('/data/programme.json'));
     return Math.round(file.duration);
@@ -104,9 +158,13 @@ async function functional(browser) {
   await save(page, '2AO.1-OP-4');
   await switchView(page, 'agenda');
   assert.equal(await page.getByText('Time overlap', { exact: true }).count(), 0);
-  await verifyPng(page, 'Download PNG', 'WCPEC9-Agenda-2026-11-16.png');
+  const preview = await openPreview(page);
+  await verifyPng(page, 'WCPEC9-Agenda-2026-11-16.png', 'short', 2);
+  await page.keyboard.press('Escape');
+  await preview.waitFor({ state: 'hidden' });
+  assert(await page.getByRole('button', { name: 'Preview agenda card' }).evaluate((node) => node === document.activeElement));
   await page.reload();
-  await page.locator('.agenda-layout').waitFor();
+  await page.locator('.agenda-list').waitFor();
   assert.equal(await page.locator('.talk-row').count(), 2);
   await switchView(page, 'programme');
   await save(page, '3AO.1-IV-2');
@@ -134,72 +192,68 @@ async function functional(browser) {
   await context.close();
 }
 
-async function denseCards(browser, count) {
+async function calendarStress(browser, full) {
   const context = await browser.newContext({ viewport: { width: 390, height: 844 }, acceptDownloads: true });
   const page = await context.newPage();
-  const dense = dataset.presentations.filter((item) => item.date === monday && item.type === 'poster')
-    .sort((a, b) => b.title.length - a.title.length).slice(0, count);
+  const day = '2026-11-17';
+  const all = dataset.presentations.filter((item) => item.date === day);
+  const previewCodes = [
+    '2BO.3-IV-1', '4BO.3-OP-2', '2BO.3-OP-3', '4BO.3-OP-3', '2BO.4-KN-1',
+    '2BO.4-OP-3', 'Pl.2', '5BO.5-KN-1', '5BO.6-OP-4', '3-2-BP-01',
+  ];
+  const items = full ? all : all.filter((item) => previewCodes.includes(item.code));
+  if (!full) assert.equal(items.length, previewCodes.length);
   await page.addInitScript(({ key, ids }) => {
-    if (localStorage.getItem(key) === null) localStorage.setItem(key, JSON.stringify(ids));
-  }, { key: storageKey, ids: [...dense.map((item) => item.id), 'removed-record'] });
+    localStorage.setItem(key, JSON.stringify(ids));
+  }, { key: storageKey, ids: [...items.map((item) => item.id), 'removed-record'] });
   await page.goto(base + '#agenda');
-  await page.getByRole('heading', { name: 'Daily agenda card' }).waitFor();
-  await page.getByRole('button', { name: 'Preview agenda card' }).click();
-  if (count === 20) await page.screenshot({ path: path.join(output, 'mobile-agenda.png') });
+  const preview = await openPreview(page);
   await noOverflow(page);
-  assert.equal(await page.locator('.talk-row').count(), count);
-  const pagination = page.locator('.pagination span');
-  const partCount = await pagination.count() ? Number((await pagination.textContent()).split(' of ')[1]) : 1;
-  assert.equal(partCount > 1, count > 20);
-  let total = 0;
-  for (let part = 1; part <= partCount; part++) {
-    const canvas = page.locator('.card-preview canvas');
-    const label = await canvas.getAttribute('aria-label');
-    total += Number(label.match(/(\d+) presentations\.$/)[1]);
-    const suffix = partCount === 1 ? '' : `-part-${String(part).padStart(2, '0')}`;
-    const download = partCount === 1 ? 'Download PNG' : `Download part ${part} PNG`;
-    const height = await verifyPng(page, download, `WCPEC9-Agenda-2026-11-16${suffix}.png`);
-    assert(height <= 4500, 'Card height should stay within the canvas limit');
-    if (part < partCount) await page.getByRole('button', { name: 'Next', exact: true }).click();
-  }
-  assert.equal(total, count);
-  if (partCount > 1) {
-    const bulk = [];
-    page.on('download', (download) => bulk.push(download.suggestedFilename()));
-    await page.getByRole('button', { name: 'Download all PNGs' }).click();
-    await page.getByText('Download requests sent.', { exact: false }).waitFor();
-    assert.equal(new Set(bulk).size, partCount);
-  }
-  // Inspect draw calls separately from pixels to check that the renderer carries
-  // exact selected text, including scientific Unicode, into each card.
-  const rendered = await page.evaluate(async ({ ids }) => {
-    const { agendaCards } = await import('./js/export.js');
-    const { loadProgramme, chronological } = await import('./js/programme.js');
-    const programme = await loadProgramme();
-    const texts = new Map();
-    const original = CanvasRenderingContext2D.prototype.fillText;
-    CanvasRenderingContext2D.prototype.fillText = function (value, x, y) {
-      if (!texts.has(this.canvas)) texts.set(this.canvas, []);
-      const width = this.measureText(value).width;
-      texts.get(this.canvas).push({ value, x: this.textAlign === 'right' ? x - width : x, y, width });
-      return original.call(this, value, x, y);
-    };
-    const items = ids.map((id) => programme.talkById.get(id)).sort(chronological);
-    const canvases = agendaCards(items[0].date, items, programme.sessionById).map((card) => card());
-    return canvases.map((canvas) => ({ height: canvas.height, words: texts.get(canvas) }));
-  }, { ids: dense.map((item) => item.id) });
-  const strings = rendered.flatMap((card) => card.words.map((word) => word.value));
-  for (const item of dense) {
-    assert(strings.includes(item.code));
-    assert(strings.join(' ').includes(item.title), `Missing or clipped title for ${item.code}`);
-  }
-  assert(strings.includes('DCC 2, Exhibition Hall'));
-  assert.equal(strings.filter((value) => value === '18:00–19:00').length, partCount);
-  assert.equal(strings.filter((value) => value === 'Poster window').length, partCount);
-  for (const card of rendered) {
-    assert(card.words.every((word) => word.y < card.height && word.x > 0 && word.x + word.width <= 1027));
-  }
+  if (!full) await page.screenshot({ path: path.join(output, 'mobile-agenda-preview.png') });
+  assert.equal(await page.locator('.agenda-list .talk-row').count(), items.length);
+  const dimensions = await verifyPng(page, `WCPEC9-Agenda-${day}.png`, full ? 'full' : 'calendar', items.length);
+  assert(dimensions.width >= 1080);
+  if (full) assert(dimensions.width * dimensions.height > 4_200_000, 'Full-day test must exercise strip encoding');
+  await preview.getByRole('button', { name: 'Close', exact: true }).click();
+  await preview.waitFor({ state: 'hidden' });
   await context.close();
+}
+
+async function geometry(browser) {
+  const page = await browser.newPage();
+  await page.goto(base);
+  const data = await page.evaluate(async () => {
+    const { agendaCalendar } = await import('./js/export.js');
+    const { loadProgramme } = await import('./js/programme.js');
+    const programme = await loadProgramme();
+    const day = '2026-11-17';
+    const codes = ['2BO.3-OP-3', '4BO.3-OP-3', '2BO.3-IV-1', '3-2-BP-01', '3-2-BP-02'];
+    const items = codes.map((code) => programme.talkById.get(`${day}-${code}`));
+    const calls = [];
+    const original = CanvasRenderingContext2D.prototype.fillText;
+    CanvasRenderingContext2D.prototype.fillText = function (text, x, y) {
+      calls.push({ text, x, y });
+      return original.call(this, text, x, y);
+    };
+    try {
+      agendaCalendar(day, items, programme.sessionById).renderPreview();
+      return calls;
+    } finally {
+      CanvasRenderingContext2D.prototype.fillText = original;
+    }
+  });
+  const text = (target) => data.filter(({ text }) => text === target);
+  const overlaps = text('09:05–09:20');
+  assert.equal(overlaps.length, 2);
+  assert.equal(overlaps[0].y, overlaps[1].y);
+  assert.notEqual(overlaps[0].x, overlaps[1].x, 'Overlaps must use separate lanes');
+  assert(text('08:30–08:50')[0].y < overlaps[0].y);
+  assert(text('18:00–19:00  ·  Poster session')[0].y > overlaps[0].y);
+  assert(text('DCC 2, Exhibition Hall').length >= 2);
+  const [nine] = text('09:00');
+  const [nineThirty] = text('09:30');
+  assert(nine.y < overlaps[0].y && overlaps[0].y < nineThirty.y);
+  await page.close();
 }
 
 async function layout(browser, width, height) {
@@ -212,8 +266,18 @@ async function layout(browser, width, height) {
   await noOverflow(page);
   if (width === 390) {
     await page.screenshot({ path: path.join(output, 'mobile.png') });
-    const treatment = await page.locator('#navigation').evaluate((node) => getComputedStyle(node).backdropFilter);
-    assert(treatment.includes('blur') && treatment.includes('glass-refraction'));
+    const chrome = page.locator('.masthead, #navigation');
+    const positions = () => chrome.evaluateAll((nodes) => nodes.map((node) => node.getBoundingClientRect().y));
+    const initial = await positions();
+    await page.evaluate(() => window.scrollBy(0, 240));
+    assert.deepEqual(await positions(), initial);
+    assert(await page.evaluate(() => window.scrollY > 0));
+    for (const control of ['.masthead', '#navigation', '.search-controls', '.dates']) {
+      const treatment = await page.locator(control).evaluate((node) => getComputedStyle(node).backdropFilter);
+      assert(treatment.includes('blur') && treatment.includes('glass-refraction'));
+    }
+    await page.screenshot({ path: path.join(output, 'mobile-scrolled.png') });
+    await page.evaluate(() => window.scrollTo(0, 0));
   }
   await cards.first().click();
   await page.getByRole('dialog').waitFor();
@@ -246,7 +310,7 @@ async function reliability(browser) {
   await page.getByText('Browser storage is unavailable.', { exact: false }).waitFor();
   await save(page, '2AO.1-OP-3');
   await switchView(page, 'agenda');
-  await page.locator('.agenda-layout').waitFor();
+  await page.locator('.agenda-list').waitFor();
   await page.close();
 
   const corrupt = await context.newPage();
@@ -285,13 +349,14 @@ async function reliability(browser) {
     }
   }
   await run(functional);
-  await run((browser) => denseCards(browser, 20));
-  await run((browser) => denseCards(browser, 52));
+  await run(geometry);
+  await run((browser) => calendarStress(browser, false));
+  await run((browser) => calendarStress(browser, true));
   for (const [width, height] of [[375, 812], [390, 844], [430, 932], [768, 1024], [1440, 900]]) {
     await run((browser) => layout(browser, width, height));
   }
   await run(reliability);
-  console.log('Passed Chromium functionality, storage, single and multipart PNGs, and all five layouts.'
+  console.log('Passed Chromium functionality, storage, single-image calendar exports, and all five layouts.'
     + (subpath ? ' Project-subpath preview passed.' : ' Set WCPEC_SUBPATH_URL to run the project-subpath check.'));
 })().catch((error) => {
   console.error(error);

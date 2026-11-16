@@ -1,6 +1,6 @@
 # WCPEC-9 Conference Planner
 
-A static planner for 15–20 November 2026 in Daejeon. Expand the day’s time blocks or search and filter individual presentations inside Programme. My Agenda saves selections locally and previews the same 1080-pixel-wide timeline PNG you can download. A day exports as one image when the selection fits within a readable canvas.
+A static planner for 15–20 November 2026 in Daejeon. Expand the day’s time blocks or search and filter individual presentations inside Programme. My Agenda saves selections locally. Open the preview sheet to see a time-grid calendar and download the entire selected day as one PNG. The dimensions grow with the selection. Large exports are assembled from small canvas strips inside the browser.
 
 ## Run locally
 
