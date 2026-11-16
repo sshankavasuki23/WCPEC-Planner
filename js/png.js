@@ -21,26 +21,38 @@ function chunk(type, data) {
   return result;
 }
 
-function scanlines(canvas) {
-  const { width, height } = canvas;
-  const pixels = canvas.getContext('2d').getImageData(0, 0, width, height).data;
+function scanlines(tiles, width) {
+  const { height } = tiles[0];
   const stride = 1 + width * 3;
   const rows = new Uint8Array(stride * height);
-  for (let y = 0; y < height; y++) {
-    const row = y * stride;
-    rows[row] = 1; // PNG Sub filter
-    let red = 0;
-    let green = 0;
-    let blue = 0;
-    for (let x = 0, i = y * width * 4; x < width; x++, i += 4) {
-      const out = row + 1 + x * 3;
-      rows[out] = pixels[i] - red;
-      rows[out + 1] = pixels[i + 1] - green;
-      rows[out + 2] = pixels[i + 2] - blue;
-      red = pixels[i];
-      green = pixels[i + 1];
-      blue = pixels[i + 2];
+  const prior = new Uint8Array(height * 3);
+  let left = 0;
+
+  for (const canvas of tiles) {
+    const tileWidth = canvas.width;
+    const pixels = canvas.getContext('2d').getImageData(0, 0, tileWidth, height).data;
+    for (let y = 0; y < height; y++) {
+      const row = y * stride;
+      rows[row] = 1; // PNG Sub filter
+      const previous = y * 3;
+      let red = prior[previous];
+      let green = prior[previous + 1];
+      let blue = prior[previous + 2];
+      let out = row + 1 + left * 3;
+      for (let x = 0, i = y * tileWidth * 4; x < tileWidth; x++, i += 4, out += 3) {
+        rows[out] = pixels[i] - red;
+        rows[out + 1] = pixels[i + 1] - green;
+        rows[out + 2] = pixels[i + 2] - blue;
+        red = pixels[i];
+        green = pixels[i + 1];
+        blue = pixels[i + 2];
+      }
+      prior[previous] = red;
+      prior[previous + 1] = green;
+      prior[previous + 2] = blue;
     }
+    left += tileWidth;
+    canvas.width = 0;
   }
   return rows;
 }
@@ -59,11 +71,7 @@ export async function encodeCalendarPng(width, height, strips) {
   }));
   const writer = compressor.writable.getWriter();
   try {
-    for (const canvas of strips) {
-      const rows = scanlines(canvas);
-      canvas.width = 0;
-      await writer.write(rows);
-    }
+    for (const tiles of strips) await writer.write(scanlines(tiles, width));
     await writer.close();
     await output;
   } catch (error) {

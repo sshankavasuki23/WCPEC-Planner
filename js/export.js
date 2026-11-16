@@ -3,16 +3,17 @@ import { sessionColors } from './track-colors.js';
 import { encodeCalendarPng } from './png.js';
 
 const margin = 44;
-const rail = 157;
-const header = 230;
-const gap = 12;
-const posterHeader = 66;
-const tileHeight = 640;
+const clockY = 198;
+const firstLaneY = 226;
+const gap = 14;
+const posterHeader = 58;
+const maxTileWidth = 3840;
+const tileHeight = 576;
 const canvasBudget = 4_200_000;
-const fontFamily = 'system-ui, sans-serif';
+const fontFamily = '"Instrument Sans", system-ui, sans-serif';
 const palette = {
-  paper: '#fbf9f4', ink: '#272922', muted: '#565951', rule: '#d8d7ce',
-  grid: '#e2e0d6', header: '#eeebe3', poster: '#f2ede7', conflict: '#943f36',
+  paper: '#fffdfa', ink: '#192c3c', muted: '#415768', rule: '#aebfcb',
+  grid: '#dbe5eb', poster: '#f0edf1', conflict: '#953f3f',
 };
 
 const font = (ctx, weight, size) => { ctx.font = `${weight} ${size}px ${fontFamily}`; };
@@ -79,9 +80,9 @@ function makeClusters(slots) {
 }
 
 function measureCard(ctx, item, session, width, compact) {
-  const titleSize = compact ? 27 : 31;
+  const titleSize = compact ? 24 : 29;
   const titleLine = titleSize + 7;
-  const smallSize = compact ? 20 : 23;
+  const smallSize = compact ? 18 : 21;
   const smallLine = smallSize + 5;
   const padding = compact ? 14 : 18;
   font(ctx, 640, titleSize);
@@ -106,8 +107,8 @@ function arrangeCards(ctx, entries, sessions, width, columns, compact) {
   return { height: y - gap, cards };
 }
 
-function placeTimeAxis(slots) {
-  if (!slots.length) return { grid: [], bottom: header };
+function placeTimeAxis(slots, minimumWidth) {
+  if (!slots.length) return { grid: [], width: minimumWidth };
   const first = Math.floor(slots[0].start / 30) * 30;
   const last = Math.ceil(Math.max(...slots.map((slot) => slot.end)) / 30) * 30;
   const ticks = Array.from({ length: (last - first) / 30 + 1 }, (_, i) => first + i * 30);
@@ -118,63 +119,79 @@ function placeTimeAxis(slots) {
   }
   const positions = new Map();
   let previous = first;
-  let y = header;
+  let x = margin;
   for (const time of [...edges].sort((a, b) => a - b)) {
-    // Share a single coordinate for each time. Stretch the spans covered by a
-    // dense block so clocks inside a block remain spaced against its duration.
-    let pixelsPerMinute = 2.8;
+    let pixelsPerMinute = 1.9;
     for (const slot of slots) {
       if (slot.start < time && slot.end > previous) {
-        pixelsPerMinute = Math.max(pixelsPerMinute, (slot.minHeight + gap) / (slot.end - slot.start));
+        pixelsPerMinute = Math.max(pixelsPerMinute, (slot.minWidth + gap) / (slot.end - slot.start));
       }
     }
-    y += (time - previous) * pixelsPerMinute;
-    positions.set(time, y);
+    x += (time - previous) * pixelsPerMinute;
+    positions.set(time, x);
     previous = time;
   }
+  const scale = Math.max(1, (minimumWidth - margin * 2) / (x - margin));
+  const position = (time) => Math.round(margin + (positions.get(time) - margin) * scale);
   for (const slot of slots) {
-    slot.top = Math.round(positions.get(slot.start));
-    slot.bottom = Math.round(positions.get(slot.end));
+    slot.left = position(slot.start);
+    slot.right = position(slot.end);
   }
-  return { grid: ticks.map((time) => ({ time, y: Math.round(positions.get(time)) })), bottom: y };
+  return { grid: ticks.map((time) => ({ time, x: position(time) })), width: position(last) + margin };
 }
 
-function layoutCalendar(items, sessions) {
+function layoutCalendar(items, sessions, minimumWidth = 1280) {
   const { slots, unscheduled } = intervals(items);
   const clusters = makeClusters(slots);
-  const lanes = Math.max(1, ...clusters.map((item) => item.laneEnds.length));
-  const maxPosters = Math.max(0, ...slots.filter((slot) => slot.poster).map((slot) => slot.items.length));
-  const posterColumns = Math.min(8, Math.ceil(Math.sqrt(maxPosters)));
-  const width = Math.max(1080, rail + margin + Math.max(lanes, posterColumns) * 315);
-  const usable = width - rail - margin;
+  const dense = slots.length > 65;
+  const cardWidth = dense ? 272 : 360;
+  for (const slot of slots) {
+    slot.shared = slot.poster && slot.items.length > 1;
+    slot.columns = slot.shared ? Math.min(17, Math.ceil(Math.sqrt(slot.items.length))) : 1;
+    const posterWidth = dense ? 312 : 360;
+    slot.minWidth = slot.shared ? slot.columns * (posterWidth + gap) - gap + 24 : cardWidth;
+  }
+  const { grid, width } = placeTimeAxis(slots, minimumWidth);
+  const laneHeights = [];
+  const isolatedPosters = [];
   const ctx = document.createElement('canvas').getContext('2d');
   for (const { laneEnds, slots: local } of clusters) {
-    const slotWidth = Math.floor((usable - (laneEnds.length - 1) * gap) / laneEnds.length);
     for (const slot of local) {
-      slot.x = rail + slot.lane * (slotWidth + gap);
+      const slotWidth = slot.right - slot.left - gap;
+      const layout = arrangeCards(ctx, slot.items, sessions,
+        slot.shared ? slot.minWidth - 24 : Math.min(slotWidth, 720), slot.columns, dense || slot.shared);
       slot.width = slotWidth;
-      const shared = slot.poster && slot.items.length > 1;
-      const cols = shared ? Math.min(posterColumns, Math.floor(slotWidth / 300)) : 1;
-      const layout = arrangeCards(ctx, slot.items, sessions, slotWidth - (shared ? 20 : 0), cols,
-        shared || laneEnds.length > 2);
       slot.cards = layout.cards;
-      slot.minHeight = layout.height + (shared ? posterHeader + 10 : 0);
-      slot.shared = shared;
+      slot.height = layout.height + (slot.shared ? posterHeader + 12 : 0);
+      if (slot.shared && laneEnds.length === 1) isolatedPosters.push(slot);
+      else laneHeights[slot.lane] = Math.max(laneHeights[slot.lane] || 0, slot.height);
     }
   }
-  const { grid, bottom } = placeTimeAxis(slots);
+  const rowTops = [];
+  let lanesBottom = firstLaneY;
+  for (const height of laneHeights) {
+    rowTops.push(lanesBottom);
+    lanesBottom += height + gap;
+  }
+  for (const slot of slots) slot.top = rowTops[slot.lane] ?? firstLaneY;
+  const scheduleBottom = Math.max(lanesBottom, ...isolatedPosters.map((slot) => slot.top + slot.height));
   const untimed = unscheduled.length
-    ? arrangeCards(ctx, unscheduled, sessions, usable, Math.min(3, unscheduled.length), false) : null;
-  const untimedY = Math.ceil(bottom) + (slots.length ? 62 : 18);
-  const height = Math.ceil(untimed ? untimedY + untimed.height + 74 : bottom + 85);
-  return { width, height, slots, grid, untimed, untimedY };
+    ? arrangeCards(ctx, unscheduled, sessions, Math.min(width - margin * 2, 1560), Math.min(3, unscheduled.length), false) : null;
+  const untimedY = scheduleBottom + 60;
+  const usedHeight = untimed ? untimedY + untimed.height : scheduleBottom;
+  const height = usedHeight + 68;
+  // A selection made entirely of simultaneous talks or posters can be taller
+  // than its time span. Expand the horizontal axis before drawing that case.
+  if (width <= height) return layoutCalendar(items, sessions, Math.ceil(height * 1.12));
+  return { width, height, slots, grid, untimed, untimedY,
+    gridBottom: Math.max(lanesBottom, Math.min(scheduleBottom, firstLaneY + 190)) };
 }
 
-function drawCard(ctx, card, x, y, height, conflicts, shared) {
+function drawCard(ctx, card, x, y, width, height, conflicts, shared) {
   const [accent, fill] = card.colors;
   ctx.fillStyle = fill;
   ctx.beginPath();
-  ctx.roundRect(x, y, card.width, height, 10);
+  ctx.roundRect(x, y, width, height, 10);
   ctx.fill();
   ctx.fillStyle = accent;
   ctx.fillRect(x + 1, y + 10, 4, height - 20);
@@ -186,9 +203,9 @@ function drawCard(ctx, card, x, y, height, conflicts, shared) {
   ctx.fillText(stamp, left, y + card.padding + card.smallSize);
   if (stamp && item.code && !shared && item.start) {
     const startWidth = ctx.measureText(stamp).width;
-    if (startWidth + ctx.measureText(item.code).width + 22 < card.width - card.padding * 2) {
+    if (startWidth + ctx.measureText(item.code).width + 22 < width - card.padding * 2) {
       ctx.textAlign = 'right';
-      ctx.fillText(item.code, x + card.width - card.padding, y + card.padding + card.smallSize);
+      ctx.fillText(item.code, x + width - card.padding, y + card.padding + card.smallSize);
       ctx.textAlign = 'left';
     }
   }
@@ -202,68 +219,88 @@ function drawCard(ctx, card, x, y, height, conflicts, shared) {
   card.room.forEach((line, i) => ctx.fillText(line, left, roomY + i * card.smallLine));
 }
 
-function drawCalendar(ctx, layout, day, count, conflicts, top, bottom) {
-  const { width, height, slots, grid, untimed, untimedY } = layout;
+function drawCalendar(ctx, layout, day, count, conflicts, clip) {
+  const { width, height, slots, grid, untimed, untimedY, gridBottom } = layout;
+  const intersects = (x, y, w, h) =>
+    x + w >= clip.left && x <= clip.right && y + h >= clip.top && y <= clip.bottom;
   ctx.fillStyle = palette.paper;
   ctx.fillRect(0, 0, width, height);
-  ctx.fillStyle = palette.header;
-  ctx.fillRect(0, 0, width, 190);
-  ctx.fillStyle = palette.muted;
-  font(ctx, 680, 24);
-  ctx.fillText('WCPEC-9   /   DAEJEON', margin, 50);
-  ctx.fillStyle = palette.ink;
-  font(ctx, 620, 62);
-  ctx.fillText('My Agenda', margin - 2, 118);
-  ctx.fillStyle = palette.muted;
-  font(ctx, 530, 28);
-  ctx.fillText(longDay(day), margin, 160);
-  ctx.textAlign = 'right';
-  font(ctx, 540, 22);
-  ctx.fillText(`${count} presentation${count === 1 ? '' : 's'}`, width - margin, 151);
-  ctx.textAlign = 'left';
+  if (clip.top < clockY) {
+    const tint = ctx.createLinearGradient(0, 0, width, 130);
+    tint.addColorStop(0, '#fbefcc');
+    tint.addColorStop(.43, '#f5e8d4');
+    tint.addColorStop(1, '#d8ebf5');
+    ctx.fillStyle = tint;
+    ctx.fillRect(0, 0, width, 162);
+    ctx.fillStyle = palette.muted;
+    font(ctx, 640, 20);
+    ctx.fillText('WCPEC-9   /   DAEJEON', margin, 41);
+    ctx.fillStyle = palette.ink;
+    ctx.font = '400 66px Baskervville, Georgia, serif';
+    ctx.fillText('My Agenda', margin - 3, 104);
+    ctx.fillStyle = palette.muted;
+    font(ctx, 500, 24);
+    ctx.fillText(longDay(day), margin, 139);
+    ctx.textAlign = 'right';
+    ctx.fillText(`${count} presentation${count === 1 ? '' : 's'}`, width - margin, 139);
+    ctx.textAlign = 'left';
+  }
 
-  font(ctx, 560, 23);
-  for (const { time, y } of grid) {
-    if (y < top - 12 || y > bottom + 30) continue;
+  for (const { time, x } of grid) {
+    if (!intersects(x - 40, clockY - 30, 80, gridBottom - clockY + 30)) continue;
     ctx.strokeStyle = time % 60 === 0 ? palette.rule : palette.grid;
     ctx.beginPath();
-    ctx.moveTo(rail - 18, y);
-    ctx.lineTo(width - margin, y);
+    ctx.moveTo(x, clockY + 12);
+    ctx.lineTo(x, gridBottom);
     ctx.stroke();
     ctx.fillStyle = palette.muted;
-    ctx.fillText(clock(time), margin, y + 7);
+    ctx.textAlign = 'center';
+    font(ctx, time % 60 === 0 ? 640 : 500, 20);
+    ctx.fillText(clock(time), x, clockY);
+    ctx.textAlign = 'left';
   }
+
   for (const slot of slots) {
-    if (slot.bottom < top || slot.top > bottom) continue;
+    if (!intersects(slot.left, slot.top, slot.width, slot.height)) continue;
     if (slot.shared) {
       ctx.fillStyle = palette.poster;
       ctx.beginPath();
-      ctx.roundRect(slot.x, slot.top, slot.width, slot.bottom - slot.top - 2, 10);
+      ctx.roundRect(slot.left, slot.top, slot.width, slot.height, 10);
       ctx.fill();
       ctx.fillStyle = palette.ink;
-      font(ctx, 640, 25);
-      ctx.fillText(`${clock(slot.start)}–${clock(slot.end)}  ·  Poster session`, slot.x + 16, slot.top + 41, slot.width - 32);
+      font(ctx, 640, 23);
+      ctx.fillText(`${clock(slot.start)}–${clock(slot.end)}  ·  Poster session`, slot.left + 15, slot.top + 35,
+        slot.width - 30);
     }
     for (const card of slot.cards) {
-      const x = slot.x + card.x + (slot.shared ? 10 : 0);
-      const y = slot.top + card.y + (slot.shared ? posterHeader : 1);
-      const height = slot.shared ? card.height : slot.bottom - slot.top - 3;
-      if (y <= bottom && y + height >= top) drawCard(ctx, card, x, y, height, conflicts, slot.shared);
+      const x = slot.left + card.x + (slot.shared ? 12 : 0);
+      const y = slot.top + card.y + (slot.shared ? posterHeader : 0);
+      const cardWidth = slot.shared ? card.width : slot.width;
+      if (intersects(x, y, cardWidth, card.height)) {
+        drawCard(ctx, card, x, y, cardWidth, card.height, conflicts, slot.shared);
+      }
     }
   }
+
   if (untimed) {
-    font(ctx, 620, 25);
+    font(ctx, 620, 24);
     ctx.fillStyle = palette.muted;
-    ctx.fillText('Time not specified', rail, untimedY - 18);
-    for (const card of untimed.cards) drawCard(ctx, card, rail + card.x, untimedY + card.y, card.height, conflicts, false);
+    ctx.fillText('Time not specified', margin, untimedY - 17);
+    for (const card of untimed.cards) {
+      if (intersects(margin + card.x, untimedY + card.y, card.width, card.height)) {
+        drawCard(ctx, card, margin + card.x, untimedY + card.y, card.width, card.height, conflicts, false);
+      }
+    }
   }
-  ctx.fillStyle = palette.muted;
-  font(ctx, 560, 22);
-  ctx.fillText('KOREA STANDARD TIME · UTC+9', margin, height - 29);
-  if (grid.length) {
-    ctx.textAlign = 'right';
-    ctx.fillText('Time intervals expand to fit text.', width - margin, height - 29);
-    ctx.textAlign = 'left';
+  if (clip.bottom >= height - 55) {
+    ctx.fillStyle = palette.muted;
+    font(ctx, 560, 20);
+    ctx.fillText('KOREA STANDARD TIME · UTC+9', margin, height - 25);
+    if (grid.length) {
+      ctx.textAlign = 'right';
+      ctx.fillText('Time intervals expand to fit text.', width - margin, height - 25);
+      ctx.textAlign = 'left';
+    }
   }
 }
 
@@ -276,31 +313,44 @@ function canvasBlob(canvas) {
 export function agendaCalendar(day, items, sessions, conflicts = new Set()) {
   const layout = layoutCalendar(items, sessions);
   const { width, height } = layout;
-  function* render(scale, stripHeight) {
-    for (let start = 0; start < height; start += stripHeight) {
-      const canvas = document.createElement('canvas');
-      canvas.width = Math.ceil(width * scale);
-      const top = Math.round(start * scale);
-      const bottom = Math.round(Math.min(start + stripHeight, height) * scale);
-      canvas.height = bottom - top;
-      const ctx = canvas.getContext('2d', { alpha: false });
-      ctx.setTransform(canvas.width / width, 0, 0, scale, 0, -top);
-      drawCalendar(ctx, layout, day, items.length, conflicts, start - 2, start + stripHeight + 2);
-      yield canvas;
+  const fitsCanvas = width * height <= canvasBudget && width <= 8192 && height <= 8192;
+
+  function* render(scale, whole = false) {
+    const pixelsWide = Math.ceil(width * scale);
+    const pixelsHigh = Math.ceil(height * scale);
+    const strip = whole ? pixelsHigh : tileHeight;
+    const tile = whole ? pixelsWide : maxTileWidth;
+    const scaleX = pixelsWide / width;
+    const scaleY = pixelsHigh / height;
+    for (let top = 0; top < pixelsHigh; top += strip) {
+      const row = [];
+      for (let left = 0; left < pixelsWide; left += tile) {
+        const canvas = document.createElement('canvas');
+        canvas.width = Math.min(tile, pixelsWide - left);
+        canvas.height = Math.min(strip, pixelsHigh - top);
+        const ctx = canvas.getContext('2d', { alpha: false });
+        ctx.setTransform(scaleX, 0, 0, scaleY, -left, -top);
+        drawCalendar(ctx, layout, day, items.length, conflicts, {
+          left: left / scaleX - 2, right: (left + canvas.width) / scaleX + 2,
+          top: top / scaleY - 2, bottom: (top + canvas.height) / scaleY + 2,
+        });
+        row.push(canvas);
+      }
+      yield row;
     }
   }
-  const fitsCanvas = width * height <= canvasBudget && height <= 8192;
+
   let preview;
   function renderPreview() {
     const scale = fitsCanvas ? 1 : Math.min(1, Math.sqrt(9_000_000 / (width * height)));
-    preview ??= [...render(scale, fitsCanvas ? height : tileHeight)];
+    preview ??= [...render(scale, fitsCanvas)];
     return preview;
   }
   return {
     day, width, height, renderPreview,
     async png() {
-      if (fitsCanvas) return canvasBlob(renderPreview()[0]);
-      return encodeCalendarPng(width, height, render(1, tileHeight));
+      if (fitsCanvas) return canvasBlob(renderPreview()[0][0]);
+      return encodeCalendarPng(width, height, render(1));
     },
   };
 }

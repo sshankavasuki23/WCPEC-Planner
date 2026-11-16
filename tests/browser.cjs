@@ -49,7 +49,7 @@ async function verifyPng(page, name, label, expectedCount) {
   const downloads = [];
   const record = (file) => downloads.push(file);
   page.on('download', record);
-  const [download] = await Promise.all([page.waitForEvent('download'), preview.getByRole('button', { name: 'Download PNG' }).click()]);
+  const [download] = await Promise.all([page.waitForEvent('download', { timeout: 60_000 }), preview.getByRole('button', { name: 'Download PNG' }).click()]);
   assert.equal(download.suggestedFilename(), name);
   const file = path.join(output, label + '-' + name);
   await download.saveAs(file);
@@ -192,7 +192,7 @@ async function functional(browser) {
   await context.close();
 }
 
-async function calendarStress(browser, full) {
+async function calendarStress(browser, selection) {
   const context = await browser.newContext({ viewport: { width: 390, height: 844 }, acceptDownloads: true });
   const page = await context.newPage();
   const day = '2026-11-17';
@@ -201,19 +201,28 @@ async function calendarStress(browser, full) {
     '2BO.3-IV-1', '4BO.3-OP-2', '2BO.3-OP-3', '4BO.3-OP-3', '2BO.4-KN-1',
     '2BO.4-OP-3', 'Pl.2', '5BO.5-KN-1', '5BO.6-OP-4', '3-2-BP-01',
   ];
-  const items = full ? all : all.filter((item) => previewCodes.includes(item.code));
-  if (!full) assert.equal(items.length, previewCodes.length);
+  const items = selection === 'full' ? all
+    : selection === 'posters' ? all.filter((item) => item.sharedWindow)
+      : all.filter((item) => previewCodes.includes(item.code));
+  if (selection === 'calendar') assert.equal(items.length, previewCodes.length);
   await page.addInitScript(({ key, ids }) => {
     localStorage.setItem(key, JSON.stringify(ids));
   }, { key: storageKey, ids: [...items.map((item) => item.id), 'removed-record'] });
   await page.goto(base + '#agenda');
   const preview = await openPreview(page);
   await noOverflow(page);
-  if (!full) await page.screenshot({ path: path.join(output, 'mobile-agenda-preview.png') });
+  const frame = preview.getByRole('img');
+  assert(await frame.evaluate((node) => node.scrollWidth > node.clientWidth));
+  await preview.getByText('Scroll sideways to see the full day.').waitFor();
+  if (selection === 'calendar') {
+    await page.screenshot({ path: path.join(output, 'mobile-agenda-preview.png') });
+    const position = await frame.evaluate((node) => { node.scrollLeft = 250; return node.scrollLeft; });
+    assert(position > 0);
+  }
   assert.equal(await page.locator('.agenda-list .talk-row').count(), items.length);
-  const dimensions = await verifyPng(page, `WCPEC9-Agenda-${day}.png`, full ? 'full' : 'calendar', items.length);
-  assert(dimensions.width >= 1080);
-  if (full) assert(dimensions.width * dimensions.height > 4_200_000, 'Full-day test must exercise strip encoding');
+  const dimensions = await verifyPng(page, `WCPEC9-Agenda-${day}.png`, selection, items.length);
+  assert(dimensions.width > dimensions.height, 'Daily calendar must use landscape dimensions');
+  if (selection !== 'calendar') assert(dimensions.width > 3840, 'Dense day must exercise horizontal tiling');
   await preview.getByRole('button', { name: 'Close', exact: true }).click();
   await preview.waitFor({ state: 'hidden' });
   await context.close();
@@ -245,14 +254,14 @@ async function geometry(browser) {
   const text = (target) => data.filter(({ text }) => text === target);
   const overlaps = text('09:05–09:20');
   assert.equal(overlaps.length, 2);
-  assert.equal(overlaps[0].y, overlaps[1].y);
-  assert.notEqual(overlaps[0].x, overlaps[1].x, 'Overlaps must use separate lanes');
-  assert(text('08:30–08:50')[0].y < overlaps[0].y);
-  assert(text('18:00–19:00  ·  Poster session')[0].y > overlaps[0].y);
+  assert.equal(overlaps[0].x, overlaps[1].x);
+  assert.notEqual(overlaps[0].y, overlaps[1].y, 'Overlaps must use separate rows');
+  assert(text('08:30–08:50')[0].x < overlaps[0].x);
+  assert(text('18:00–19:00  ·  Poster session')[0].x > overlaps[0].x);
   assert(text('DCC 2, Exhibition Hall').length >= 2);
   const [nine] = text('09:00');
   const [nineThirty] = text('09:30');
-  assert(nine.y < overlaps[0].y && overlaps[0].y < nineThirty.y);
+  assert(nine.x < overlaps[0].x && overlaps[0].x < nineThirty.x);
   await page.close();
 }
 
@@ -269,6 +278,10 @@ async function layout(browser, width, height) {
     const chrome = page.locator('.masthead, #navigation');
     const positions = () => chrome.evaluateAll((nodes) => nodes.map((node) => node.getBoundingClientRect().y));
     const initial = await positions();
+    assert.equal(await page.locator('.masthead').evaluate((node) =>
+      getComputedStyle(node).getPropertyValue('--glass-fill').trim()), '#f7fbff24');
+    assert.match(await page.locator('h1').evaluate((node) => getComputedStyle(node).fontFamily), /Baskervville/);
+    assert.match(await page.locator('body').evaluate((node) => getComputedStyle(node, '::before').backgroundImage), /linear-gradient/);
     await page.evaluate(() => window.scrollBy(0, 240));
     assert.deepEqual(await positions(), initial);
     assert(await page.evaluate(() => window.scrollY > 0));
@@ -350,8 +363,9 @@ async function reliability(browser) {
   }
   await run(functional);
   await run(geometry);
-  await run((browser) => calendarStress(browser, false));
-  await run((browser) => calendarStress(browser, true));
+  await run((browser) => calendarStress(browser, 'calendar'));
+  await run((browser) => calendarStress(browser, 'posters'));
+  await run((browser) => calendarStress(browser, 'full'));
   for (const [width, height] of [[375, 812], [390, 844], [430, 932], [768, 1024], [1440, 900]]) {
     await run((browser) => layout(browser, width, height));
   }

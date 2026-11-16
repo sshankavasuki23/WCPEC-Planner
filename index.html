@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#f4f2ee">
+  <meta name="theme-color" content="#fcf2d8">
   <meta name="description" content="Browse the WCPEC-9 programme and build a personal agenda for Daejeon, 15–20 November 2026.">
   <title>WCPEC-9 Conference Planner</title>
   <link rel="stylesheet" href="./css/styles.css">
@@ -64,7 +64,8 @@
       <button id="preview-download" type="button" class="button primary">Download PNG</button>
     </div>
     <div id="preview-status" class="export-status" role="status"></div>
-    <div id="preview-image" class="card-preview" role="img"></div>
+    <p id="preview-hint" class="preview-hint" hidden>Scroll sideways to see the full day.</p>
+    <div id="preview-image" class="card-preview" role="img" tabindex="0" aria-describedby="preview-hint"></div>
   </dialog>
   <dialog id="clear-dialog" class="confirm" aria-labelledby="clear-title">
     <h2 id="clear-title">Clear My Agenda?</h2>

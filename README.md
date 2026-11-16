@@ -1,6 +1,6 @@
 # WCPEC-9 Conference Planner
 
-A static planner for 15–20 November 2026 in Daejeon. Expand the day’s time blocks or search and filter individual presentations inside Programme. My Agenda saves selections locally. Open the preview sheet to see a time-grid calendar and download the entire selected day as one PNG. The dimensions grow with the selection. Large exports are assembled from small canvas strips inside the browser.
+A static planner for 15–20 November 2026 in Daejeon. Expand the day’s time blocks or search and filter individual presentations inside Programme. My Agenda saves selections locally. Open the preview sheet to see a horizontal calendar and download the entire selected day as one PNG. Time runs left to right and simultaneous talks occupy separate rows. On a phone, scroll sideways in the preview. The image expands to fit the selection, and the browser assembles large exports from tiles.
 
 ## Run locally
 
@@ -18,7 +18,7 @@ If you already have a local `development` branch, use `git switch development` a
 
 ## Files and data updates
 
-- `index.html`, `css/styles.css`, and `js/` contain Programme and My Agenda, the saved selections, and the canvas renderer. The deployed site needs only these assets and `data/programme.json`.
+- `index.html`, `css/styles.css`, and `js/` contain Programme and My Agenda, the saved selections, and the canvas renderer. The deployed site uses these assets, `data/programme.json`, and the self-hosted Baskervville and Instrument Sans fonts in `fonts/`. The font licences are included there.
 - `data/programme.json` joins presentations to sessions by `sessionId`. Dates and times are in `Asia/Seoul`. Room and track come from the session. An entry’s `sourcePage` is the physical PDF page, starting at 1. `timetablePage` and `schedulePage` identify separate room or time evidence where applicable. A poster uses `sharedWindow: true` and its session window. A null field means its value was unavailable or inapplicable.
 - `scripts/extract_programme.py` rebuilds the data from the supplied November 2026 programme edition using PyMuPDF. `scripts/source_schedule.json` records the workshop, tutorial and special-event table transcriptions and source-specific corrections. Keep the original programme outside this public repository.
 
