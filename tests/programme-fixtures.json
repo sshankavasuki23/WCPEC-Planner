@@ -1,0 +1,265 @@
+{
+  "technicalRooms": {
+    "2026-11-16": {
+      "1": "2AO.1 2AO.2",
+      "3": "4AO.1 4AO.2",
+      "4": "5AO.1 5AO.2",
+      "5": "3AO.1 3AO.2",
+      "6": "6AO.1 6AO.2"
+    },
+    "2026-11-17": {
+      "1": "2BO.3 2BO.4 2BO.5",
+      "3": "4BO.3 4BO.4 4BO.5",
+      "4": "5BO.3 5BO.4 5BO.5 5BO.6 5BO.7",
+      "5": "3BO.3 3BO.4 3BO.5 3BO.6 3BO.7",
+      "6": "6BO.3 6BO.4 6BO.5 6BO.6"
+    },
+    "2026-11-18": {
+      "1": "2CO.6 2CO.7 2CO.8",
+      "2": "7CO.1 7CO.2 7CO.3",
+      "3": "4CO.6 4CO.7 4CO.8 4CO.9 4CO.10",
+      "4": "5CO.8 5CO.9 5CO.10 5CO.11 5CO.12",
+      "5": "3CO.8 3CO.9 3CO.10 3CO.11 3CO.12",
+      "6": "6CO.7 6CO.8",
+      "7": "1CO.1 1CO.2 1CO.3 1CO.4 1CO.5"
+    },
+    "2026-11-19": {
+      "1": "2DO.9 2DO.10 2DO.11 2DO.12 2DO.13",
+      "2": "7DO.4 7DO.5 7DO.6 7DO.7 7DO.8",
+      "3": "4DO.11 4DO.12",
+      "4": "5DO.13 5DO.14 5DO.15 5DO.16 5DO.17",
+      "5": "1DO.6 1DO.7 1DO.8 1DO.9 1DO.10",
+      "6": "6DO.9 6DO.10"
+    },
+    "2026-11-20": {
+      "1": "2EO.14",
+      "2": "7EO.9",
+      "4": "5EO.18",
+      "5": "1EO.11",
+      "6": "6EO.11"
+    }
+  },
+  "dailyPresentationCounts": {
+    "2026-11-15": {
+      "tutorial": 8,
+      "workshop": 11
+    },
+    "2026-11-16": {
+      "plenary": 1,
+      "workshop": 21,
+      "invited": 15,
+      "keynote": 5,
+      "oral": 24,
+      "poster": 280
+    },
+    "2026-11-17": {
+      "invited": 30,
+      "keynote": 11,
+      "oral": 53,
+      "workshop": 30,
+      "plenary": 1,
+      "poster": 296
+    },
+    "2026-11-18": {
+      "invited": 40,
+      "keynote": 9,
+      "oral": 74,
+      "plenary": 1,
+      "workshop": 15
+    },
+    "2026-11-19": {
+      "invited": 45,
+      "keynote": 8,
+      "workshop": 25,
+      "oral": 50,
+      "plenary": 1,
+      "poster": 250
+    },
+    "2026-11-20": {
+      "oral": 11,
+      "invited": 8,
+      "keynote": 2,
+      "plenary": 1
+    }
+  },
+  "presentations": {
+    "TS-F-1": {
+      "date": "2026-11-15",
+      "start": "09:00",
+      "end": "10:00",
+      "room": "Room 301 (DCC 1, 3F)",
+      "sourcePage": 60,
+      "type": "tutorial",
+      "title": "Fundamentals of Solar PV Power Conversion",
+      "authors": [
+        "Ned Ekins-Daukes"
+      ]
+    },
+    "KCJ-1-1": {
+      "date": "2026-11-15",
+      "start": "13:20",
+      "end": "13:40",
+      "room": "Session Room 6(204-205)",
+      "sourcePage": 279,
+      "type": "workshop",
+      "title": "K-Moonshot Solar Cell Mission: A Roadmap Toward Highly Efficient Multijunction Photovoltaic Modules",
+      "authors": [
+        "Hyunjung Shin"
+      ]
+    },
+    "2AO.1-OP-3": {
+      "date": "2026-11-16",
+      "start": "15:40",
+      "end": "15:55",
+      "room": "Session Room 1(101-102)",
+      "sourcePage": 89,
+      "type": "oral",
+      "title": "Machine Learning Applications in Czochralski Silicon Crystal Growth",
+      "authors": [
+        "Chenyun Pan",
+        "Xuefeng Han",
+        "Shuai Yuan",
+        "Xuegong Yu",
+        "Deren Yang"
+      ]
+    },
+    "3AO.1-KN-1": {
+      "date": "2026-11-16",
+      "start": "15:00",
+      "end": "15:30",
+      "room": "Session Room 5(201-202)",
+      "sourcePage": 91,
+      "type": "keynote",
+      "title": "The Central Role of Materials Innovation in Perovskite Photovoltaic Evolution",
+      "authors": [
+        "Michael Graetzel"
+      ]
+    },
+    "2-1-AP-01": {
+      "date": "2026-11-16",
+      "start": "18:00",
+      "end": "19:00",
+      "room": "DCC 2, Exhibition Hall",
+      "sourcePage": 166,
+      "type": "poster",
+      "title": "Chemically Relevant Damp-Heat Accelerated Ageing for Linking Cell-Level Degradation to Module Reliability in TOPCon Solar Cells",
+      "authors": [
+        "Xinyuan Wu",
+        "Wei Wu",
+        "Weiguang Yang",
+        "Yan Zhang",
+        "Jiexi Fu",
+        "Xutao Wang",
+        "Jing Yuan",
+        "Jianjun Nie",
+        "Zhencong Qiao",
+        "Chao An",
+        "Feng Li",
+        "Lin Lv",
+        "Baochen Liao",
+        "Bram Hoex"
+      ]
+    },
+    "5BO.4-OP-5": {
+      "date": "2026-11-17",
+      "start": "11:05",
+      "end": "11:20",
+      "room": "Session Room 4(107-108)",
+      "sourcePage": 108,
+      "type": "oral",
+      "title": "PVMD Toolbox v2: Open-Source First-Principles Modelling for Future Photovoltaic Modules and Systems",
+      "authors": [
+        "Youri Blom",
+        "Malte R. Vogt",
+        "Olindo Isabella",
+        "Rudi Santbergen"
+      ]
+    },
+    "Pl.3": {
+      "date": "2026-11-18",
+      "start": "11:30",
+      "end": "12:30",
+      "room": "Session Room 5(201-202)",
+      "sourcePage": 117,
+      "type": "plenary",
+      "title": "Perovskite Solar Cells: A Game Changer for the Future of Photovoltaic Solar Energy",
+      "authors": [
+        "Henry J. Snaith"
+      ]
+    },
+    "KSM-1-1": {
+      "date": "2026-11-18",
+      "start": "15:10",
+      "end": "15:30",
+      "room": "Session Room 2(103)",
+      "sourcePage": 285,
+      "type": "workshop",
+      "title": "Perovskite-silicon 2-terminal tandem solar cell research at NUS-SERIS",
+      "authors": [
+        "Armin ABERLE"
+      ]
+    },
+    "5DO.15-OP-3": {
+      "date": "2026-11-19",
+      "start": "14:20",
+      "end": "14:35",
+      "room": "Session Room 4(107-108)",
+      "sourcePage": 152,
+      "type": "oral",
+      "title": "Global Assessment of Wave-Induced Losses for Offshore Floating PV using the SWIFT Surrogate Model",
+      "authors": [
+        "Sri Sathya Sai Shanka Vasuki",
+        "Teddy Simanjuntak",
+        "Olindo Isabella",
+        "Rudi Santbergen"
+      ]
+    },
+    "1-2-DP-07": {
+      "date": "2026-11-19",
+      "start": "18:00",
+      "end": "19:00",
+      "room": "DCC 2, Exhibition Hall",
+      "sourcePage": 241,
+      "type": "poster",
+      "title": "Performance Optimization of All-Perovskite Tandem Solar Cells",
+      "authors": [
+        "Madina Seisembayeva",
+        "Askhat Nuraly",
+        "Kuanysh Tlekova",
+        "Gulnaz Toleubay",
+        "Yeldos Seikozhanov",
+        "Askhat Jumabekov",
+        "Erik Shalenov"
+      ]
+    },
+    "2EO.14-IV-1": {
+      "date": "2026-11-20",
+      "start": "08:30",
+      "end": "08:50",
+      "room": "Session Room 1 (101-102)",
+      "sourcePage": 162,
+      "type": "invited",
+      "title": "Development of TOPCon Structures for Bottom Cell Applications",
+      "authors": [
+        "Rabin Basnet",
+        "Zhongshu Yang",
+        "Anita Rose Varghese",
+        "Viqar Ahmad",
+        "Menglei Xu",
+        "Daniel Macdonald"
+      ]
+    },
+    "Pl.5": {
+      "date": "2026-11-20",
+      "start": "10:00",
+      "end": "11:00",
+      "room": "Session Room 5(201-202)",
+      "sourcePage": 161,
+      "type": "plenary",
+      "title": "Building the Next Generation of Solar: Qcells' Path from Silicon Innovation to Perovskite-Silicon Tandem",
+      "authors": [
+        "Danielle Merfeld"
+      ]
+    }
+  }
+}

@@ -1,0 +1,1612 @@
+{
+  "tutorials": {
+    "TS-F": [
+      15,
+      "tutorial-fundamentals",
+      "Fundamentals of PV",
+      "09:00",
+      "10:00",
+      "Room 301 (DCC 1, 3F)",
+      55,
+      {
+        "1": [
+          "09:00",
+          "10:00"
+        ]
+      }
+    ],
+    "TS-S": [
+      15,
+      "tutorial-silicon",
+      "Silicon Solar Cells",
+      "10:00",
+      "12:00",
+      "Room 301 (DCC 1, 3F)",
+      56,
+      {}
+    ],
+    "TS-P": [
+      15,
+      "tutorial-perovskite",
+      "Perovskite Solar Cells",
+      "13:00",
+      "14:00",
+      "Room 301 (DCC 1, 3F)",
+      57,
+      {
+        "1": [
+          "13:00",
+          "14:00"
+        ]
+      }
+    ],
+    "TS-PV": [
+      15,
+      "tutorial-modules",
+      "PV Modules and Systems",
+      "14:15",
+      "16:15",
+      "Room 301 (DCC 1, 3F)",
+      58,
+      {}
+    ],
+    "TS-T": [
+      15,
+      "tutorial-tandem",
+      "Tandem Solar Cells",
+      "16:30",
+      "18:30",
+      "Room 301 (DCC 1, 3F)",
+      59,
+      {}
+    ]
+  },
+  "workshops": {
+    "KCJ-1": [
+      15,
+      "kcj-1",
+      "The 10th Korea-China-Japan Joint Workshop on Photovoltaics 1",
+      "13:20",
+      "14:20",
+      "Session Room 6(204-205)",
+      266,
+      {
+        "1": [
+          "13:20",
+          "13:40"
+        ],
+        "2": [
+          "13:40",
+          "14:00"
+        ],
+        "3": [
+          "14:00",
+          "14:20"
+        ]
+      }
+    ],
+    "KCJ-2": [
+      15,
+      "kcj-2",
+      "The 10th Korea-China-Japan Joint Workshop on Photovoltaics 2",
+      "14:20",
+      "15:20",
+      "Session Room 6(204-205)",
+      266,
+      {
+        "1": [
+          "14:20",
+          "14:40"
+        ],
+        "2": [
+          "14:40",
+          "15:00"
+        ],
+        "3": [
+          "15:00",
+          "15:20"
+        ]
+      }
+    ],
+    "KCJ-3": [
+      15,
+      "kcj-3",
+      "The 10th Korea-China-Japan Joint Workshop on Photovoltaics 3",
+      "15:40",
+      "16:40",
+      "Session Room 6(204-205)",
+      266,
+      {
+        "1": [
+          "15:40",
+          "16:00"
+        ],
+        "2": [
+          "16:00",
+          "16:20"
+        ],
+        "3": [
+          "16:20",
+          "16:40"
+        ]
+      }
+    ],
+    "KCJ-4": [
+      15,
+      "kcj-4",
+      "The 10th Korea-China-Japan Joint Workshop on Photovoltaics 4",
+      "16:40",
+      "17:20",
+      "Session Room 6(204-205)",
+      266,
+      {
+        "1": [
+          "16:40",
+          "17:00"
+        ],
+        "2": [
+          "17:00",
+          "17:20"
+        ]
+      }
+    ],
+    "IEA-MP": [
+      16,
+      "iea-mp",
+      "IEA PVPS Workshop: Asia in Focus - Market & Policy",
+      "15:00",
+      "18:00",
+      "Session Room 2(103)",
+      267,
+      {
+        "1": [
+          "15:35",
+          "15:50"
+        ],
+        "2": [
+          "15:50",
+          "16:05"
+        ],
+        "3": [
+          "16:05",
+          "16:20"
+        ],
+        "4": [
+          "16:20",
+          "16:35"
+        ],
+        "5": [
+          "16:35",
+          "16:50"
+        ],
+        "6": [
+          "16:50",
+          "17:05"
+        ],
+        "7": [
+          "17:05",
+          "17:20"
+        ]
+      }
+    ],
+    "AF-1": [
+      17,
+      "af-1",
+      "The 2nd Asia-Africa (A²) Joint PV Symposium 1",
+      "08:30",
+      "09:50",
+      "Session Room 2(103)",
+      268,
+      {
+        "1": [
+          "08:35",
+          "09:00"
+        ],
+        "2": [
+          "09:00",
+          "09:30"
+        ],
+        "3": [
+          "09:30",
+          "09:50"
+        ]
+      }
+    ],
+    "AF-2": [
+      17,
+      "af-2",
+      "The 2nd Asia-Africa (A²) Joint PV Symposium 2",
+      "10:00",
+      "11:20",
+      "Session Room 2(103)",
+      268,
+      {
+        "1": [
+          "10:00",
+          "10:20"
+        ],
+        "2": [
+          "10:20",
+          "10:40"
+        ],
+        "3": [
+          "10:40",
+          "11:00"
+        ],
+        "4": [
+          "11:00",
+          "11:20"
+        ]
+      }
+    ],
+    "AF-3": [
+      17,
+      "af-3",
+      "The 2nd Asia-Africa (A²) Joint PV Symposium 3",
+      "14:00",
+      "15:20",
+      "Session Room 2(103)",
+      268,
+      {
+        "1": [
+          "14:00",
+          "14:30"
+        ],
+        "2": [
+          "14:30",
+          "15:00"
+        ],
+        "3": [
+          "15:00",
+          "15:20"
+        ]
+      }
+    ],
+    "AF-4": [
+      17,
+      "af-4",
+      "The 2nd Asia-Africa (A²) Joint PV Symposium 4",
+      "15:30",
+      "16:50",
+      "Session Room 2(103)",
+      268,
+      {
+        "1": [
+          "15:30",
+          "16:00"
+        ],
+        "2": [
+          "16:00",
+          "16:20"
+        ],
+        "3": [
+          "16:20",
+          "16:40"
+        ]
+      }
+    ],
+    "EU-KOR": [
+      17,
+      "eu-kor",
+      "EU–Korea Cooperation: PV R&I Challenges",
+      "15:00",
+      "16:30",
+      "Session Room 3(105-106)",
+      269,
+      {
+        "1": [
+          "15:05",
+          "15:15"
+        ],
+        "2": [
+          "15:15",
+          "15:25"
+        ],
+        "3": [
+          "15:25",
+          "15:35"
+        ],
+        "4": [
+          "15:35",
+          "15:45"
+        ],
+        "5": [
+          "15:45",
+          "16:05"
+        ],
+        "6": [
+          "16:05",
+          "16:25"
+        ]
+      }
+    ],
+    "KSM-1": [
+      18,
+      "ksm-1",
+      "The 4th Korea-Singapore-Malaysia Joint PV Symposium",
+      "15:00",
+      "18:00",
+      "Session Room 2(103)",
+      273,
+      {
+        "1": [
+          "15:10",
+          "15:30"
+        ],
+        "2": [
+          "15:30",
+          "15:50"
+        ],
+        "3": [
+          "15:50",
+          "16:10"
+        ],
+        "4": [
+          "16:10",
+          "16:30"
+        ],
+        "5": [
+          "16:50",
+          "17:10"
+        ],
+        "6": [
+          "17:10",
+          "17:30"
+        ],
+        "7": [
+          "17:30",
+          "17:50"
+        ]
+      }
+    ],
+    "ASIA-EU-1": [
+      19,
+      "asia-eu-1",
+      "Asia-Europe Emerging Materials for Thin Film Solar Cells 1",
+      "08:30",
+      "10:00",
+      "Session Room 6(204-205)",
+      274,
+      {
+        "1": [
+          "08:30",
+          "08:50"
+        ],
+        "2": [
+          "08:50",
+          "09:10"
+        ],
+        "3": [
+          "09:10",
+          "09:30"
+        ],
+        "4": [
+          "09:30",
+          "09:50"
+        ]
+      }
+    ],
+    "ASIA-EU-2": [
+      19,
+      "asia-eu-2",
+      "Asia-Europe Emerging Materials for Thin Film Solar Cells 2",
+      "10:00",
+      "11:30",
+      "Session Room 6(204-205)",
+      274,
+      {
+        "1": [
+          "10:00",
+          "10:20"
+        ],
+        "2": [
+          "10:20",
+          "10:40"
+        ],
+        "3": [
+          "10:40",
+          "11:00"
+        ],
+        "4": [
+          "11:00",
+          "11:20"
+        ]
+      }
+    ],
+    "ASIA-EU-3": [
+      19,
+      "asia-eu-3",
+      "Asia-Europe Emerging Materials for Thin Film Solar Cells 3",
+      "13:30",
+      "15:00",
+      "Session Room 3(105-106)",
+      274,
+      {
+        "1": [
+          "13:30",
+          "13:50"
+        ],
+        "2": [
+          "13:50",
+          "14:10"
+        ],
+        "3": [
+          "14:10",
+          "14:30"
+        ],
+        "4": [
+          "14:30",
+          "14:50"
+        ]
+      }
+    ],
+    "Task12": [
+      19,
+      "task12",
+      "IEA PVPS: Task 12-PV Sustainability",
+      "16:30",
+      "18:00",
+      "Session Room 3(105-106)",
+      277,
+      {
+        "1": [
+          "16:50",
+          "17:10"
+        ],
+        "2": [
+          "17:10",
+          "17:30"
+        ],
+        "3": [
+          "17:30",
+          "17:50"
+        ]
+      }
+    ]
+  },
+  "events": [
+    [
+      15,
+      "welcome",
+      "Welcome Reception",
+      "social",
+      "18:30",
+      "20:00",
+      "1F, Medium Conference Room lobby, DCC 1",
+      52
+    ],
+    [
+      16,
+      "opening",
+      "Opening Ceremony",
+      "ceremony",
+      "10:00",
+      "10:45",
+      "2F, Grand Ballroom (201+202), DCC",
+      52
+    ],
+    [
+      16,
+      "exhibition-opening",
+      "Exhibition Opening Ceremony",
+      "ceremony",
+      "11:00",
+      "12:00",
+      "1st Floor (Main Entrance), DCC 2",
+      52
+    ],
+    [
+      16,
+      "awards",
+      "WCPEC Awards Ceremony",
+      "ceremony",
+      "13:00",
+      "14:00",
+      "2F, Grand Ballroom (201+202), DCC 1",
+      52
+    ],
+    [
+      17,
+      "dinner",
+      "Conference Dinner",
+      "social",
+      "19:00",
+      "20:30",
+      "3F, Convention Hall, ICC Hotel",
+      53
+    ],
+    [
+      20,
+      "closing",
+      "Closing Ceremony",
+      "ceremony",
+      "11:00",
+      "12:30",
+      "2F, Grand Ballroom (201+202), DCC 1",
+      53
+    ],
+    [
+      17,
+      "bipv-forum",
+      "Next-Generation BIPV Forum",
+      "workshop",
+      "15:00",
+      "17:30",
+      "Session Room 1(101-102)",
+      97
+    ],
+    [
+      17,
+      "daejeon",
+      "Daejeon Special Session – Building a BIPV Industry Ecosystem and Expanding Solar Energy for Shared Local Prosperity",
+      "workshop",
+      "14:00",
+      "17:00",
+      "Room 301 (DCC 1, 3F)",
+      270
+    ],
+    [
+      18,
+      "women",
+      "Women in PV",
+      "workshop",
+      "12:30",
+      "13:30",
+      "Session Room 2(103)",
+      272
+    ],
+    [
+      18,
+      "belgium",
+      "From Belgium to Beyond Europe: How Does PV Innovation Move from Lab to Industry?",
+      "workshop",
+      "15:00",
+      "17:30",
+      "Session Room 1(101-102)",
+      271
+    ],
+    [
+      18,
+      "tour",
+      "Technical Tour",
+      "tour",
+      "14:00",
+      "18:30",
+      "DCC 1st Exhibition Hall, 1F Lobby (Tour Desk)",
+      62
+    ],
+    [
+      17,
+      "energy",
+      "Energy Talk Concert",
+      "event",
+      "11:00",
+      "12:00",
+      "Stage (nearby Hall 4, exit), DCC 2 Exhibition Hall (2–4)",
+      352
+    ],
+    [
+      18,
+      "energy",
+      "Energy Talk Concert",
+      "event",
+      "14:00",
+      "15:00",
+      "Stage (nearby Hall 4, exit), DCC 2 Exhibition Hall (2–4)",
+      352
+    ],
+    [
+      18,
+      "busking-1",
+      "Stage Busking",
+      "event",
+      "11:00",
+      "12:00",
+      "Stage (nearby Hall 4, exit), DCC 2 Exhibition Hall (2–4)",
+      355
+    ],
+    [
+      18,
+      "busking-2",
+      "Stage Busking",
+      "event",
+      "15:30",
+      "17:00",
+      "Stage (nearby Hall 4, exit), DCC 2 Exhibition Hall (2–4)",
+      355
+    ],
+    [
+      19,
+      "busking",
+      "Stage Busking",
+      "event",
+      "11:00",
+      "12:00",
+      "Stage (nearby Hall 4, exit), DCC 2 Exhibition Hall (2–4)",
+      355
+    ],
+    [
+      16,
+      "solar-forum",
+      "Solar PV Technology Innovation Forum",
+      "workshop",
+      "14:00",
+      "16:00",
+      "Stage (nearby Hall 4, exit), DCC 2 Exhibition Hall (2–4)",
+      353
+    ],
+    [
+      17,
+      "tech-pitch",
+      "Invited Talk & Tech Pitching (Domestic companies)",
+      "workshop",
+      "14:00",
+      "16:00",
+      "Stage (nearby Hall 4, exit), DCC 2 Exhibition Hall (2–4)",
+      354
+    ],
+    [
+      19,
+      "tech-pitch",
+      "Invited Talk & Tech Pitching (International companies)",
+      "workshop",
+      "14:00",
+      "16:20",
+      "Stage (nearby Hall 4, exit), DCC 2 Exhibition Hall (2–4)",
+      354
+    ],
+    [
+      16,
+      "exhibition",
+      "Solar & Green-Energy Show",
+      "exhibition",
+      "10:00",
+      "18:00",
+      "DCC 2 Exhibition Hall (2–4)",
+      292
+    ],
+    [
+      17,
+      "exhibition",
+      "Solar & Green-Energy Show",
+      "exhibition",
+      "10:00",
+      "18:00",
+      "DCC 2 Exhibition Hall (2–4)",
+      292
+    ],
+    [
+      18,
+      "exhibition",
+      "Solar & Green-Energy Show",
+      "exhibition",
+      "10:00",
+      "18:00",
+      "DCC 2 Exhibition Hall (2–4)",
+      292
+    ],
+    [
+      19,
+      "exhibition",
+      "Solar & Green-Energy Show",
+      "exhibition",
+      "10:00",
+      "18:00",
+      "DCC 2 Exhibition Hall (2–4)",
+      292
+    ],
+    [
+      16,
+      "lunch-break",
+      "Break",
+      "break",
+      "12:00",
+      "13:00",
+      null,
+      87
+    ],
+    [
+      17,
+      "lunch-break",
+      "Break",
+      "break",
+      "12:30",
+      "13:30",
+      null,
+      97
+    ],
+    [
+      18,
+      "lunch-break",
+      "Break",
+      "break",
+      "12:30",
+      "13:30",
+      null,
+      115
+    ],
+    [
+      19,
+      "lunch-break",
+      "Break",
+      "break",
+      "12:30",
+      "13:30",
+      null,
+      139
+    ],
+    [
+      16,
+      "poster-window",
+      "Poster Session",
+      "event",
+      "18:00",
+      "19:00",
+      "DCC 2, Exhibition Hall",
+      24
+    ],
+    [
+      17,
+      "poster-window",
+      "Poster Session",
+      "event",
+      "18:00",
+      "19:00",
+      "DCC 2, Exhibition Hall",
+      24
+    ],
+    [
+      19,
+      "poster-window",
+      "Poster Session",
+      "event",
+      "18:00",
+      "19:00",
+      "DCC 2, Exhibition Hall",
+      25
+    ]
+  ],
+  "tablePresentations": [
+    [
+      18,
+      "women",
+      null,
+      "Career Journeys, Challenges, and Opportunities for Women in Science and Engineering",
+      "workshop",
+      "12:30",
+      "13:30",
+      null,
+      272,
+      [
+        "Anita Ho-Baillie",
+        "Claudia Buerhop",
+        "Sunyoung Sohn"
+      ]
+    ],
+    [
+      18,
+      "belgium",
+      null,
+      "Welcome & Opening",
+      "workshop",
+      "15:00",
+      "15:10",
+      null,
+      271,
+      [
+        "Yu Chen",
+        "Yunjung Choi"
+      ]
+    ],
+    [
+      18,
+      "belgium",
+      null,
+      "From Research Excellence to Industrial Leadership: What’s Next for Global PV Innovation?",
+      "workshop",
+      "15:10",
+      "15:20",
+      null,
+      271,
+      [
+        "Pierre Verlinden"
+      ]
+    ],
+    [
+      18,
+      "belgium",
+      null,
+      "The European Energy Innovation Ecosystem: EnergyVille–Thor Park as a Gateway to Europe.",
+      "workshop",
+      "15:20",
+      "15:30",
+      null,
+      271,
+      [
+        "Annelies Gorissen"
+      ]
+    ],
+    [
+      18,
+      "belgium",
+      null,
+      "Building Successful Innovation Partnerships: From European Research Excellence to Global Industrial Impact.",
+      "workshop",
+      "15:30",
+      "16:15",
+      null,
+      271,
+      [
+        "Aslihan Babayigit",
+        "Bart Vermang",
+        "Patrizio Manganiello",
+        "Jihye Gwak",
+        "Gaëtan Masson",
+        "Negar Naghavi"
+      ]
+    ],
+    [
+      18,
+      "belgium",
+      null,
+      "Networking Reception (Invitation Only)",
+      "workshop",
+      "16:15",
+      "17:30",
+      null,
+      271,
+      []
+    ],
+    [
+      17,
+      "daejeon",
+      null,
+      "Introduction of Distinguished Guests",
+      "workshop",
+      "14:00",
+      "14:05",
+      null,
+      270,
+      []
+    ],
+    [
+      17,
+      "daejeon",
+      null,
+      "Commemorative Address",
+      "workshop",
+      "14:05",
+      "14:15",
+      null,
+      270,
+      [
+        "Tae-Jeong Heo"
+      ]
+    ],
+    [
+      17,
+      "daejeon",
+      null,
+      "MOU Signing Ceremony",
+      "workshop",
+      "14:15",
+      "14:25",
+      null,
+      270,
+      [
+        "Daejeon Metropolitan City",
+        "Korea Institute of Energy Research (KIER)",
+        "KEPCO KDN"
+      ]
+    ],
+    [
+      17,
+      "daejeon",
+      null,
+      "Changes in Korea's Renewable Energy Policy and Future Directions",
+      "workshop",
+      "14:25",
+      "14:45",
+      null,
+      270,
+      [
+        "Jeong-seok Lee"
+      ]
+    ],
+    [
+      17,
+      "daejeon",
+      null,
+      "The Urban and Architectural Value of Building-Based Photovoltaics",
+      "workshop",
+      "14:45",
+      "15:05",
+      null,
+      270,
+      [
+        "Ji-uk Lee"
+      ]
+    ],
+    [
+      17,
+      "daejeon",
+      null,
+      "Daejeon's BIPV Industry Ecosystem and Commercialization Strategies",
+      "workshop",
+      "15:05",
+      "15:25",
+      null,
+      270,
+      [
+        "Hun-rae Kim"
+      ]
+    ],
+    [
+      17,
+      "daejeon",
+      null,
+      "Miho-dong: An Energy Self-Sufficient Village for All",
+      "workshop",
+      "15:40",
+      "16:00",
+      null,
+      270,
+      [
+        "Heung-mo Yang"
+      ]
+    ],
+    [
+      17,
+      "daejeon",
+      null,
+      "Industrial Park Rooftop Solar: Installation Case Studies and Revenue Models",
+      "workshop",
+      "16:00",
+      "16:20",
+      null,
+      270,
+      [
+        "Seung-bok Baek"
+      ]
+    ],
+    [
+      17,
+      "daejeon",
+      null,
+      "A Solar Energy Model for Daejeon Connecting Business Participation with Citizen Benefits",
+      "workshop",
+      "16:20",
+      "16:50",
+      null,
+      270,
+      [
+        "Je-seon Kim",
+        "Sang-yeol Yu",
+        "Cheong-hun Kim",
+        "Yang-gyun Oh",
+        "Jin-seop Lee"
+      ]
+    ],
+    [
+      17,
+      "daejeon",
+      null,
+      "Wrap-up and Closing",
+      "workshop",
+      "16:50",
+      "17:00",
+      null,
+      270,
+      []
+    ],
+    [
+      19,
+      "task12",
+      null,
+      "Overview of IEA PVPS Task 12 Activities",
+      "workshop",
+      "16:30",
+      "16:50",
+      null,
+      277,
+      [
+        "Malte Vogt"
+      ]
+    ],
+    [
+      16,
+      "iea-mp",
+      null,
+      "Asia in Focus Workshop Opening Remarks",
+      "workshop",
+      "15:00",
+      "15:05",
+      null,
+      267,
+      [
+        "Chang Sik Son"
+      ]
+    ],
+    [
+      16,
+      "iea-mp",
+      null,
+      "Welcome Remarks and IEA PVPS Overview",
+      "workshop",
+      "15:05",
+      "15:20",
+      null,
+      267,
+      [
+        "Daniel Mugnier"
+      ]
+    ],
+    [
+      16,
+      "iea-mp",
+      null,
+      "Overview of Asian PV Market Trends by IEA PVPS Task 1",
+      "workshop",
+      "15:20",
+      "15:35",
+      null,
+      267,
+      [
+        "Melodie de l'Epine"
+      ]
+    ],
+    [
+      16,
+      "iea-mp",
+      null,
+      "Panel Discussion",
+      "workshop",
+      "17:20",
+      "17:50",
+      null,
+      267,
+      []
+    ],
+    [
+      16,
+      "iea-mp",
+      null,
+      "Closing Remarks",
+      "workshop",
+      "17:50",
+      "18:00",
+      null,
+      267,
+      [
+        "Izumi Kaizuka"
+      ]
+    ],
+    [
+      18,
+      "ksm-1",
+      null,
+      "Opening Remarks",
+      "workshop",
+      "15:00",
+      "15:10",
+      null,
+      273,
+      [
+        "Min Jae Ko"
+      ]
+    ],
+    [
+      18,
+      "ksm-1",
+      null,
+      "Closing Remarks",
+      "workshop",
+      "17:50",
+      "18:00",
+      null,
+      273,
+      [
+        "Woo Kyoung Kim"
+      ]
+    ],
+    [
+      19,
+      "7DO.5",
+      null,
+      "Scaling Solar Through Storage: How Low-Cost Battery Manufacturing Can Accelerate Global PV Deployment",
+      "workshop",
+      "10:00",
+      "10:30",
+      null,
+      275,
+      [
+        "Peter Fath"
+      ]
+    ],
+    [
+      19,
+      "7DO.5",
+      null,
+      "Panel Discussion",
+      "workshop",
+      "10:30",
+      "11:30",
+      null,
+      275,
+      [
+        "Gaëtan Masson",
+        "Danielle Merfeld",
+        "Sungtaek Lim",
+        "Shin Han"
+      ]
+    ],
+    [
+      19,
+      "7DO.6",
+      null,
+      "Economic Impacts of Distributed Energy Resources for Utility Scale and Commercial and Industrial Scale Photovoltaics Plus Battery Energy Storage Systems for Power Grid Stability",
+      "workshop",
+      "13:30",
+      "13:50",
+      null,
+      275,
+      [
+        "Benjamin Damiani"
+      ]
+    ],
+    [
+      19,
+      "7DO.6",
+      null,
+      "Flexibility, Storage and Curtailment in High VRE Power Grids",
+      "workshop",
+      "13:50",
+      "14:10",
+      null,
+      275,
+      [
+        "Jan Remund"
+      ]
+    ],
+    [
+      19,
+      "7DO.6",
+      null,
+      "From \"How Much\" to \"What, When, and What to Prepare\": The Right Questions for Power System Models in the Solar Century",
+      "workshop",
+      "14:10",
+      "14:30",
+      null,
+      275,
+      [
+        "Seung Wan Kim"
+      ]
+    ],
+    [
+      19,
+      "7DO.6",
+      null,
+      "Q&A",
+      "workshop",
+      "14:30",
+      "15:00",
+      null,
+      275,
+      []
+    ],
+    [
+      16,
+      "solar-forum",
+      null,
+      "Opening",
+      "workshop",
+      "14:00",
+      "14:05",
+      null,
+      353,
+      []
+    ],
+    [
+      16,
+      "solar-forum",
+      null,
+      "Opening Remarks",
+      "workshop",
+      "14:05",
+      "14:10",
+      null,
+      353,
+      [
+        "KETEP"
+      ]
+    ],
+    [
+      16,
+      "solar-forum",
+      null,
+      "Solar PV R&D Achievements and Future Directions",
+      "workshop",
+      "14:10",
+      "14:25",
+      null,
+      353,
+      [
+        "KETEP"
+      ]
+    ],
+    [
+      16,
+      "solar-forum",
+      null,
+      "Tandem PV Technologies and Solar Applications in Space and Special Environments",
+      "workshop",
+      "14:25",
+      "14:40",
+      null,
+      353,
+      [
+        "Soojin Moon"
+      ]
+    ],
+    [
+      16,
+      "solar-forum",
+      null,
+      "Next-Generation Inverters and Power Grid Integration",
+      "workshop",
+      "14:40",
+      "14:55",
+      null,
+      353,
+      [
+        "Junbo Sim"
+      ]
+    ],
+    [
+      16,
+      "solar-forum",
+      null,
+      "Panelist Introduction and Discussion Overview",
+      "workshop",
+      "14:55",
+      "15:05",
+      null,
+      353,
+      []
+    ],
+    [
+      16,
+      "solar-forum",
+      null,
+      "Thematic Panel Discussion and Recommendations for Publicly Funded R&D",
+      "workshop",
+      "15:05",
+      "15:35",
+      null,
+      353,
+      [
+        "Soojin Moon",
+        "Shinyoung Noh",
+        "Junbo Sim",
+        "Byunghun Ra"
+      ]
+    ],
+    [
+      16,
+      "solar-forum",
+      null,
+      "Audience Q&A and Moderator's Summary",
+      "workshop",
+      "15:35",
+      "15:50",
+      null,
+      353,
+      []
+    ],
+    [
+      16,
+      "solar-forum",
+      null,
+      "Closing Remarks and Group Photo",
+      "workshop",
+      "15:50",
+      "16:00",
+      null,
+      353,
+      []
+    ],
+    [
+      17,
+      "tech-pitch",
+      null,
+      "3 Years of SNEC: Tracking Solar Technology Trends",
+      "invited",
+      "14:00",
+      "14:40",
+      null,
+      354,
+      [
+        "Young-Joo Eo"
+      ]
+    ],
+    [
+      17,
+      "tech-pitch",
+      null,
+      "SG Energy Co., Ltd.",
+      "workshop",
+      "14:40",
+      "14:50",
+      null,
+      354,
+      [
+        "SG Energy Co., Ltd."
+      ]
+    ],
+    [
+      17,
+      "tech-pitch",
+      null,
+      "SHINSUNG E&G Co., Ltd.",
+      "workshop",
+      "14:50",
+      "15:00",
+      null,
+      354,
+      [
+        "SHINSUNG E&G Co., Ltd."
+      ]
+    ],
+    [
+      17,
+      "tech-pitch",
+      null,
+      "ENERGYNET Co., Ltd.",
+      "workshop",
+      "15:00",
+      "15:10",
+      null,
+      354,
+      [
+        "ENERGYNET Co., Ltd."
+      ]
+    ],
+    [
+      17,
+      "tech-pitch",
+      null,
+      "SKSE Co., Ltd.",
+      "workshop",
+      "15:10",
+      "15:20",
+      null,
+      354,
+      [
+        "SKSE Co., Ltd."
+      ]
+    ],
+    [
+      17,
+      "tech-pitch",
+      null,
+      "Unitest Co., Ltd.",
+      "workshop",
+      "15:40",
+      "15:50",
+      null,
+      354,
+      [
+        "Unitest Co., Ltd."
+      ]
+    ],
+    [
+      17,
+      "tech-pitch",
+      null,
+      "SCOTRA Co., Ltd.",
+      "workshop",
+      "15:50",
+      "16:00",
+      null,
+      354,
+      [
+        "SCOTRA Co., Ltd."
+      ]
+    ],
+    [
+      19,
+      "tech-pitch",
+      null,
+      "From Innovation to Industrial Impact: Key Results from the ALPACA Project",
+      "invited",
+      "14:00",
+      "14:40",
+      null,
+      354,
+      [
+        "Felipe Valencia"
+      ]
+    ],
+    [
+      19,
+      "tech-pitch",
+      null,
+      "LayTec AG",
+      "workshop",
+      "14:40",
+      "14:50",
+      null,
+      354,
+      [
+        "LayTec AG"
+      ]
+    ],
+    [
+      19,
+      "tech-pitch",
+      null,
+      "IEA PVPs",
+      "workshop",
+      "14:50",
+      "15:00",
+      null,
+      354,
+      [
+        "IEA PVPs"
+      ]
+    ],
+    [
+      19,
+      "tech-pitch",
+      null,
+      "Suzhou TDM Technology Co, Ltd.",
+      "workshop",
+      "15:00",
+      "15:10",
+      null,
+      354,
+      [
+        "Suzhou TDM Technology Co, Ltd."
+      ]
+    ],
+    [
+      19,
+      "tech-pitch",
+      null,
+      "PVQuick LLC",
+      "workshop",
+      "15:10",
+      "15:20",
+      null,
+      354,
+      [
+        "PVQuick LLC"
+      ]
+    ],
+    [
+      19,
+      "tech-pitch",
+      null,
+      "Laplace System",
+      "workshop",
+      "15:40",
+      "15:50",
+      null,
+      354,
+      [
+        "Laplace System"
+      ]
+    ],
+    [
+      19,
+      "tech-pitch",
+      null,
+      "FLUXIM AG",
+      "workshop",
+      "15:50",
+      "16:00",
+      null,
+      354,
+      [
+        "FLUXIM AG"
+      ]
+    ],
+    [
+      19,
+      "tech-pitch",
+      null,
+      "Tau Science Corporation",
+      "workshop",
+      "16:00",
+      "16:10",
+      null,
+      354,
+      [
+        "Tau Science Corporation"
+      ]
+    ],
+    [
+      19,
+      "tech-pitch",
+      null,
+      "Eternal Sun l WAVELABS",
+      "workshop",
+      "16:10",
+      "16:20",
+      null,
+      354,
+      [
+        "Eternal Sun l WAVELABS"
+      ]
+    ]
+  ],
+  "posters": {
+    "16": [
+      "18:00",
+      "19:00",
+      "DCC 2, Exhibition Hall",
+      24
+    ],
+    "17": [
+      "18:00",
+      "19:00",
+      "DCC 2, Exhibition Hall",
+      24
+    ],
+    "19": [
+      "18:00",
+      "19:00",
+      "DCC 2, Exhibition Hall",
+      25
+    ]
+  },
+  "keynotes": [
+    "AF-1-1",
+    "AF-1-2",
+    "AF-3-1",
+    "AF-3-2",
+    "AF-4-1"
+  ],
+  "titleCorrections": {
+    "IEA-MP-1": "China's PV Sector Markets and Policies - Status Update"
+  },
+  "authorCorrections": {
+    "7DO.5-KN-2": [
+      "Gaëtan Masson",
+      "Danielle Merfeld",
+      "Sungtaek Lim",
+      "Shin Han"
+    ],
+    "KCJ-4-1": [
+      "Kihwan Kim",
+      "Inyoung Jeong",
+      "Donghyeop Shin",
+      "Inchan Hwang",
+      "Soomin Song",
+      "Ahreum Lee",
+      "Ara Cho",
+      "Jihye Gwak"
+    ],
+    "KSM-1-2": [
+      "Norasikin Ahmad Ludin",
+      "Nadrah Azmi",
+      "Puvaneswaran Chelvanathan",
+      "Ubaidah Syafiq",
+      "Mohd Sukor Su'ait",
+      "Suhaila Sepeai",
+      "Nurfarhana Alyssa Ahmad Affandi",
+      "Akrajas Ali Umar",
+      "Fareed Farihin Mohd Firdaus",
+      "Adamu Ahmed Goje"
+    ]
+  },
+  "sessionTitles": {
+    "7DO.5": "Industry Forum I: Solar & Storage – Scaling Solar Through Storage",
+    "7DO.6": "Industry Forum II: Power System Flexibility – Transforming Power Systems for a Solar-Dominated Future"
+  },
+  "timeNotes": {
+    "Pl.1": "The detailed programme gives 14:00–15:00. The room timetable gives 14:00–14:50.",
+    "4CO.9-OP-2": "The detailed listing gives 13:30–14:00, outside the 15:00–16:30 room timetable for this session. Confirm the time and room with the organiser.",
+    "7DO.8-OP-1": "The detailed listing gives 16:25–16:40. The room timetable starts this session at 16:30."
+  }
+}
