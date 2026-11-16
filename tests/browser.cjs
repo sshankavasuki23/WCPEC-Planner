@@ -33,7 +33,7 @@ async function save(page, code) {
 
 async function openPreview(page) {
   assert.equal(await page.getByRole('button', { name: 'Download PNG' }).count(), 0);
-  await page.getByRole('button', { name: 'Preview agenda card' }).click();
+  await page.getByRole('button', { name: 'Preview agenda' }).click();
   const preview = page.getByRole('dialog', { name: 'Agenda card' });
   await preview.locator('canvas').first().waitFor();
   return preview;
@@ -162,7 +162,7 @@ async function functional(browser) {
   await verifyPng(page, 'WCPEC9-Agenda-2026-11-16.png', 'short', 2);
   await page.keyboard.press('Escape');
   await preview.waitFor({ state: 'hidden' });
-  assert(await page.getByRole('button', { name: 'Preview agenda card' }).evaluate((node) => node === document.activeElement));
+  assert(await page.getByRole('button', { name: 'Preview agenda' }).evaluate((node) => node === document.activeElement));
   await page.reload();
   await page.locator('.agenda-list').waitFor();
   assert.equal(await page.locator('.talk-row').count(), 2);
@@ -184,7 +184,8 @@ async function functional(browser) {
   await page.getByRole('button', { name: 'Clear agenda', exact: true }).click();
   await page.getByRole('heading', { name: 'Your agenda is empty for this day' }).waitFor();
   assert.deepEqual(await page.evaluate((key) => JSON.parse(localStorage.getItem(key)), storageKey), []);
-  await page.getByText('Made by Sathya · TU Delft', { exact: true }).waitFor();
+  assert.equal(await page.locator('#context-label').innerText(), '15–20 November 2026');
+  assert.equal(await page.getByText('Made by Sathya · TU Delft', { exact: true }).count(), 0);
   const origin = new URL(base).origin;
   assert(requests.every((request) => new URL(request).origin === origin), 'Unexpected external asset request');
   assert.deepEqual(errors, []);
@@ -307,8 +308,16 @@ async function layout(browser, width, height) {
     const fallback = await page.locator('#navigation').evaluate((node) => getComputedStyle(node).backdropFilter);
     assert.equal(fallback, 'none');
   }
+  await page.locator('[data-save]').first().click();
   await switchView(page, 'agenda');
   await noOverflow(page);
+  const [preview, clear] = await Promise.all([
+    page.getByRole('button', { name: 'Preview agenda', exact: true }).boundingBox(),
+    page.getByRole('button', { name: 'Clear My Agenda', exact: true }).boundingBox(),
+  ]);
+  assert(preview && clear && preview.y === clear.y && preview.x + preview.width < clear.x,
+    'Agenda actions should appear side by side');
+  if (width === 390) await page.screenshot({ path: path.join(output, 'mobile-agenda.png') });
   await context.close();
 }
 

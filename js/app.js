@@ -312,10 +312,11 @@ function renderAgenda() {
     clearDialog.showModal();
   });
   content.replaceChildren(dateControls('agendaDate'),
-    element('div', 'section-header', [heading, ...(selected.length ? [clear] : [])]));
+    element('div', 'section-header', [heading]));
   const savedNote = element('p', 'saved-note', 'Your selections are saved in this browser on this device.');
   content.append(savedNote);
   if (!items.length) {
+    if (selected.length) content.append(element('div', 'agenda-actions', [clear]));
     content.append(empty('Your agenda is empty for this day', 'Save a presentation from Programme to add it to this day.'));
     return;
   }
@@ -324,10 +325,10 @@ function renderAgenda() {
   }
   const list = element('div', 'talk-list agenda-list',
     items.map((item) => talkRow(item, { agenda: true, overlap: overlapping.has(item.id) })));
-  const preview = button('Preview agenda card', 'button primary preview-trigger',
+  const preview = button('Preview agenda', 'button primary',
     () => openAgendaPreview(day, items, overlapping));
   preview.setAttribute('aria-haspopup', 'dialog');
-  content.append(preview, list);
+  content.append(element('div', 'agenda-actions', [preview, clear]), list);
 }
 
 function openAgendaPreview(day, items, overlapping) {

@@ -172,7 +172,6 @@ main { min-height: 60vh; }
 }
 .intro { padding: clamp(12px, 2.4vw, 26px) 0 clamp(15px, 2.6vw, 24px); }
 .eyebrow { color: var(--muted); font-size: .79rem; font-weight: 560; }
-.eyebrow span { padding-inline: 4px; }
 .intro h1 { font-size: clamp(2.28rem, 5.5vw, 3.9rem); line-height: 1.1; font-weight: 560; letter-spacing: -.045em; margin-top: 5px; }
 .dates {
   display: grid;
@@ -382,7 +381,8 @@ main { min-height: 60vh; }
 .agenda-list .talk-open { padding-left: 15px; border-radius: 0 var(--radius) var(--radius) 0; }
 .agenda-list .talk-row { border-left: 3px solid var(--track-accent); }
 .agenda-time { color: var(--accent-text); font-size: .81rem; font-weight: 670; font-variant-numeric: tabular-nums; }
-.preview-trigger { margin-bottom: var(--s4); }
+.agenda-actions { display: flex; align-items: center; gap: var(--s2); margin-bottom: var(--s4); }
+.agenda-actions button { white-space: nowrap; }
 .preview-dialog { width: min(1180px, 100% - 36px); }
 .preview-bar { align-items: center; justify-content: flex-start; }
 .preview-heading { margin-right: auto; min-width: 0; }
@@ -403,7 +403,7 @@ main { min-height: 60vh; }
 .export-status:empty { display: none; }
 .export-status { font-size: .82rem; color: var(--muted); margin: var(--s2) var(--s4); }
 footer { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 6px 15px; padding: 25px 0 var(--bottom-clearance); color: var(--muted); font-size: .78rem; }
-footer small { font-size: inherit; }
+footer a { margin-inline-start: auto; }
 
 dialog {
   border: 1px solid #afc3d385;
