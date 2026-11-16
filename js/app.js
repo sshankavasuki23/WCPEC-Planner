@@ -1,6 +1,6 @@
 import { chronological, dayLabel, loadProgramme, longDay, normalize, roomLabel, timeLabel, typeLabel } from './programme.js';
 import { conflicts, restoreAgenda, saveAgenda, storageKey } from './agenda.js';
-import { agendaCalendar, downloadCalendar } from './export.js';
+import { agendaCalendar, downloadCalendar } from './export.js?v=agenda-details-1';
 import { sessionColors } from './track-colors.js';
 
 const byId = (id) => document.getElementById(id);
@@ -342,8 +342,11 @@ function openAgendaPreview(day, items, overlapping) {
   previewDialog.scrollTop = 0;
   // Let the sheet paint before typesetting a full conference day.
   requestAnimationFrame(() => requestAnimationFrame(async () => {
-    await document.fonts.load('600 29px Inter', items.map((item) => item.title || '').join(' '))
-      .catch(() => {});
+    const text = items.flatMap((item) => {
+      const session = programme.sessionById.get(item.sessionId);
+      return [item.title, session?.title, ...item.authors, roomLabel(session)];
+    }).filter(Boolean).join(' ');
+    await document.fonts.load('600 29px Inter', text).catch(() => {});
     if (!previewDialog.open || previewRequest !== request) return;
     try {
       previewCalendar = agendaCalendar(day, items, programme.sessionById, overlapping);
