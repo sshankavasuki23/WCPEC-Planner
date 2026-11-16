@@ -21,16 +21,22 @@ const minute = (time) => Number(time.slice(0, 2)) * 60 + Number(time.slice(3));
 const clock = (value) => `${String(Math.floor(value / 60)).padStart(2, '0')}:${String(value % 60).padStart(2, '0')}`;
 const segmenter = typeof Intl.Segmenter === 'function' ? new Intl.Segmenter(undefined, { granularity: 'grapheme' }) : null;
 
-function wrap(ctx, value, maxWidth) {
+function wrap(ctx, value, maxWidth, firstWidth) {
   const lines = [];
   let line = '';
+  let width = firstWidth;
   for (const word of value.split(/\s+/)) {
     const candidate = line ? `${line} ${word}` : word;
-    if (ctx.measureText(candidate).width <= maxWidth) {
+    if (ctx.measureText(candidate).width <= width) {
       line = candidate;
       continue;
     }
-    if (line) lines.push(line);
+    if (line || lines.length === 0) lines.push(line);
+    width = maxWidth;
+    if (ctx.measureText(word).width <= width) {
+      line = word;
+      continue;
+    }
     line = '';
     const letters = segmenter ? [...segmenter.segment(word)].map(({ segment }) => segment) : [...word];
     for (const letter of letters) {
@@ -79,27 +85,42 @@ function makeClusters(slots) {
   return clusters;
 }
 
-function measureCard(ctx, item, session, width, compact) {
+function measureCard(ctx, item, session, width, compact, shared) {
   const titleSize = compact ? 24 : 29;
-  const titleLine = titleSize + 7;
   const smallSize = compact ? 18 : 21;
   const smallLine = smallSize + 5;
   const padding = compact ? 14 : 18;
-  font(ctx, 600, titleSize);
-  const title = wrap(ctx, item.title || 'Not specified', width - padding * 2 - 5);
-  font(ctx, 480, smallSize);
-  const room = wrap(ctx, roomLabel(session), width - padding * 2 - 5);
-  const height = padding * 2 + smallLine + title.length * titleLine + room.length * smallLine + 3;
-  return { item, title, room, width, height, titleSize, titleLine, smallSize, smallLine, padding,
+  const contentWidth = width - padding * 2 - 5;
+  const stamp = shared || !item.start || !item.end ? item.code || '' : timeLabel(item);
+  const code = !shared && item.start && item.end ? item.code : null;
+  font(ctx, 650, smallSize);
+  const codeBelow = Boolean(code && ctx.measureText(stamp).width + ctx.measureText(code).width + 22 > contentWidth);
+  const stampHeight = smallLine * (codeBelow ? 2 : 1);
+  const fields = [
+    ['Session:', session?.title, smallSize, 480],
+    ['Presentation:', item.title, titleSize, 600],
+    ['Authors:', item.authors.join(', '), smallSize, 480],
+    ['Location:', roomLabel(session), smallSize, 600],
+  ].map(([label, value, size, weight]) => {
+    font(ctx, 600, smallSize);
+    const labelWidth = ctx.measureText(label).width + 8;
+    font(ctx, weight, size);
+    const lines = wrap(ctx, value || 'Not specified', contentWidth, contentWidth - labelWidth);
+    return { label, labelWidth, lines, size, weight, leading: size + (size === titleSize ? 7 : 5) };
+  });
+  const height = padding * 2 + stampHeight + 3
+    + fields.reduce((sum, field) => sum + field.lines.length * field.leading + 3, 0);
+  return { item, width, height, fields, smallSize, smallLine, padding, stamp, code, codeBelow, stampHeight,
     colors: sessionColors(session) };
 }
 
-function arrangeCards(ctx, entries, sessions, width, columns, compact) {
+function arrangeCards(ctx, entries, sessions, width, columns, compact, shared = false) {
   const cardWidth = Math.floor((width - gap * (columns - 1)) / columns);
   const cards = [];
   let y = 0;
   for (let i = 0; i < entries.length; i += columns) {
-    const row = entries.slice(i, i + columns).map((item) => measureCard(ctx, item, sessions.get(item.sessionId), cardWidth, compact));
+    const row = entries.slice(i, i + columns).map((item) =>
+      measureCard(ctx, item, sessions.get(item.sessionId), cardWidth, compact, shared));
     const rowHeight = Math.max(...row.map((item) => item.height));
     row.forEach((item, col) => cards.push({ ...item, x: col * (cardWidth + gap), y, height: rowHeight }));
     y += rowHeight + gap;
@@ -157,7 +178,7 @@ function layoutCalendar(items, sessions) {
       const shared = slot.poster && slot.items.length > 1;
       const cols = shared ? Math.min(posterColumns, Math.floor(slotWidth / 300)) : 1;
       const layout = arrangeCards(ctx, slot.items, sessions, slotWidth - (shared ? 20 : 0), cols,
-        shared || laneEnds.length > 2);
+        shared || laneEnds.length > 2, shared);
       slot.cards = layout.cards;
       slot.minHeight = layout.height + (shared ? posterHeader + 10 : 0);
       slot.shared = shared;
@@ -172,7 +193,7 @@ function layoutCalendar(items, sessions) {
   return { width, height, slots, grid, untimed, untimedY };
 }
 
-function drawCard(ctx, card, x, y, width, height, conflicts, shared) {
+function drawCard(ctx, card, x, y, width, height, conflicts) {
   const [accent, fill] = card.colors;
   ctx.fillStyle = fill;
   ctx.beginPath();
@@ -181,27 +202,31 @@ function drawCard(ctx, card, x, y, width, height, conflicts, shared) {
   ctx.fillStyle = accent;
   ctx.fillRect(x + 1, y + 10, 4, height - 20);
   const left = x + card.padding + 5;
-  const item = card.item;
-  ctx.fillStyle = conflicts.has(item.id) ? palette.conflict : palette.muted;
+  const top = y + card.padding;
+  ctx.fillStyle = conflicts.has(card.item.id) ? palette.conflict : palette.muted;
   font(ctx, 650, card.smallSize);
-  const stamp = shared || !item.start ? item.code || '' : timeLabel(item);
-  ctx.fillText(stamp, left, y + card.padding + card.smallSize);
-  if (stamp && item.code && !shared && item.start) {
-    const startWidth = ctx.measureText(stamp).width;
-    if (startWidth + ctx.measureText(item.code).width + 22 < width - card.padding * 2) {
-      ctx.textAlign = 'right';
-      ctx.fillText(item.code, x + width - card.padding, y + card.padding + card.smallSize);
-      ctx.textAlign = 'left';
-    }
+  ctx.fillText(card.stamp, left, top + card.smallSize);
+  if (card.codeBelow) {
+    ctx.fillText(card.code, left, top + card.smallLine + card.smallSize);
+  } else if (card.code) {
+    ctx.textAlign = 'right';
+    ctx.fillText(card.code, x + width - card.padding, top + card.smallSize);
+    ctx.textAlign = 'left';
   }
-  ctx.fillStyle = palette.ink;
-  font(ctx, 600, card.titleSize);
-  const titleY = y + card.padding + card.smallLine + card.titleSize;
-  card.title.forEach((line, i) => ctx.fillText(line, left, titleY + i * card.titleLine));
-  ctx.fillStyle = palette.muted;
-  font(ctx, 480, card.smallSize);
-  const roomY = y + card.padding + card.smallLine + card.title.length * card.titleLine + card.smallSize + 2;
-  card.room.forEach((line, i) => ctx.fillText(line, left, roomY + i * card.smallLine));
+
+  let row = top + card.stampHeight + 3;
+  for (const field of card.fields) {
+    const baseline = row + field.size;
+    ctx.fillStyle = palette.muted;
+    font(ctx, 600, card.smallSize);
+    ctx.fillText(field.label, left, baseline);
+    ctx.fillStyle = field.weight === 600 ? palette.ink : palette.muted;
+    font(ctx, field.weight, field.size);
+    for (const [index, line] of field.lines.entries()) {
+      ctx.fillText(line, index === 0 ? left + field.labelWidth : left, baseline + index * field.leading);
+    }
+    row += field.lines.length * field.leading + 3;
+  }
 }
 
 function drawCalendar(ctx, layout, day, count, conflicts, clip) {
@@ -261,7 +286,7 @@ function drawCalendar(ctx, layout, day, count, conflicts, clip) {
       const y = slot.top + card.y + (slot.shared ? posterHeader : 1);
       const cardHeight = slot.shared ? card.height : height - 3;
       if (intersects(x, y, card.width, cardHeight)) {
-        drawCard(ctx, card, x, y, card.width, cardHeight, conflicts, slot.shared);
+        drawCard(ctx, card, x, y, card.width, cardHeight, conflicts);
       }
     }
   }
@@ -272,7 +297,7 @@ function drawCalendar(ctx, layout, day, count, conflicts, clip) {
     ctx.fillText('Time not specified', rail, untimedY - 17);
     for (const card of untimed.cards) {
       if (intersects(rail + card.x, untimedY + card.y, card.width, card.height)) {
-        drawCard(ctx, card, rail + card.x, untimedY + card.y, card.width, card.height, conflicts, false);
+        drawCard(ctx, card, rail + card.x, untimedY + card.y, card.width, card.height, conflicts);
       }
     }
   }

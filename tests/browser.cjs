@@ -42,7 +42,8 @@ async function openPreview(page) {
 async function verifyPng(page, name, label, expectedCount) {
   const preview = page.getByRole('dialog', { name: 'Agenda card' });
   const frame = preview.getByRole('img');
-  assert((await frame.getAttribute('aria-label')).endsWith(`, ${expectedCount} saved presentations`));
+  const noun = expectedCount === 1 ? 'presentation' : 'presentations';
+  assert((await frame.getAttribute('aria-label')).endsWith(`, ${expectedCount} saved ${noun}`));
   const tiles = frame.locator('canvas');
   const expected = await tiles.count() === 1
     ? await tiles.first().evaluate((canvas) => canvas.toDataURL('image/png').split(',')[1]) : null;
@@ -190,6 +191,49 @@ async function functional(browser) {
   assert(requests.every((request) => new URL(request).origin === origin), 'Unexpected external asset request');
   assert.deepEqual(errors, []);
   console.log(`Local JSON transfer ${loadMs} ms; a full-dataset keyword query and render ${searchMs} ms.`);
+  await context.close();
+}
+
+async function calendarFields(browser, sample, code) {
+  const item = dataset.presentations.find((record) => record.code === code);
+  const session = dataset.sessions.find((record) => record.id === item.sessionId);
+  const context = await browser.newContext({
+    viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, acceptDownloads: true,
+  });
+  const page = await context.newPage();
+  await page.addInitScript(({ key, id }) => {
+    localStorage.setItem(key, JSON.stringify([id]));
+    window.calendarText = [];
+    const original = CanvasRenderingContext2D.prototype.fillText;
+    CanvasRenderingContext2D.prototype.fillText = function (text, x, y, ...args) {
+      window.calendarText.push(text);
+      return original.call(this, text, x, y, ...args);
+    };
+  }, { key: storageKey, id: item.id });
+  await page.goto(base + '#agenda');
+  await openPreview(page);
+  await noOverflow(page);
+
+  const drawn = await page.evaluate(() => window.calendarText);
+  const fields = [
+    ['Session:', session.title],
+    ['Presentation:', item.title],
+    ['Authors:', item.authors.join(', ')],
+    ['Location:', session.room],
+  ];
+  assert(drawn.includes(`${item.start}–${item.end}`));
+  assert(drawn.includes(code));
+  for (const [index, [label, value]] of fields.entries()) {
+    const start = drawn.indexOf(label);
+    const end = index + 1 < fields.length ? drawn.indexOf(fields[index + 1][0]) : drawn.length;
+    assert(start >= 0 && end > start, `Missing or out-of-order calendar field ${label}`);
+    const lines = drawn.slice(start + 1, end).filter(Boolean);
+    assert.equal(lines.join(' '), value.replace(/\s+/g, ' '));
+    if (sample === 'long' && label !== 'Location:') {
+      assert(lines.length > 1, `Long calendar field did not wrap ${label}`);
+    }
+  }
+  await verifyPng(page, `WCPEC9-Agenda-${item.date}.png`, sample, 1);
   await context.close();
 }
 
@@ -373,6 +417,9 @@ async function reliability(browser) {
   }
   await run(functional);
   await run(geometry);
+  await run((browser) => calendarFields(browser, 'single-short', 'TS-F-1'));
+  await run((browser) => calendarFields(browser, 'long', '1CO.5-IV-1'));
+  await run((browser) => calendarFields(browser, 'single-poster', '3-2-BP-01'));
   await run((browser) => calendarStress(browser, 'calendar'));
   await run((browser) => calendarStress(browser, 'posters'));
   await run((browser) => calendarStress(browser, 'full'));
