@@ -341,10 +341,8 @@ function openAgendaPreview(day, items, overlapping) {
   previewDialog.scrollTop = 0;
   // Let the sheet paint before typesetting a full conference day.
   requestAnimationFrame(() => requestAnimationFrame(async () => {
-    await Promise.allSettled([
-      document.fonts.load('400 66px Baskervville'),
-      document.fonts.load('600 29px "Instrument Sans"', items.map((item) => item.title || '').join(' ')),
-    ]);
+    await document.fonts.load('600 29px Inter', items.map((item) => item.title || '').join(' '))
+      .catch(() => {});
     if (!previewDialog.open || previewRequest !== request) return;
     try {
       previewCalendar = agendaCalendar(day, items, programme.sessionById, overlapping);
@@ -354,11 +352,7 @@ function openAgendaPreview(day, items, overlapping) {
         for (const tile of tiles) tile.style.width = `${100 * tile.width / width}%`;
         return element('div', 'calendar-strip', tiles);
       });
-      const image = element('div', 'calendar-image', rows);
-      image.style.setProperty('--preview-width', `${Math.round(previewCalendar.width * .61)}px`);
-      frame.replaceChildren(image);
-      frame.scrollLeft = 0;
-      byId('preview-hint').hidden = frame.scrollWidth <= frame.clientWidth;
+      frame.replaceChildren(...rows);
       byId('preview-status').textContent = '';
       previewDownload.disabled = false;
     } catch {
@@ -386,7 +380,6 @@ previewDialog.addEventListener('close', () => {
   if (previewDialog.open) return;
   previewCalendar = undefined;
   byId('preview-image').replaceChildren();
-  byId('preview-hint').hidden = true;
 });
 
 function showDetails(kind, id, origin, sessionId = null) {

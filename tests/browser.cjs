@@ -212,17 +212,16 @@ async function calendarStress(browser, selection) {
   const preview = await openPreview(page);
   await noOverflow(page);
   const frame = preview.getByRole('img');
-  assert(await frame.evaluate((node) => node.scrollWidth > node.clientWidth));
-  await preview.getByText('Scroll sideways to see the full day.').waitFor();
+  assert(await frame.evaluate((node) => node.scrollWidth <= node.clientWidth + 1));
   if (selection === 'calendar') {
     await page.screenshot({ path: path.join(output, 'mobile-agenda-preview.png') });
-    const position = await frame.evaluate((node) => { node.scrollLeft = 250; return node.scrollLeft; });
+    const position = await preview.evaluate((node) => { node.scrollTop = 250; return node.scrollTop; });
     assert(position > 0);
   }
   assert.equal(await page.locator('.agenda-list .talk-row').count(), items.length);
   const dimensions = await verifyPng(page, `WCPEC9-Agenda-${day}.png`, selection, items.length);
-  assert(dimensions.width > dimensions.height, 'Daily calendar must use landscape dimensions');
-  if (selection !== 'calendar') assert(dimensions.width > 3840, 'Dense day must exercise horizontal tiling');
+  assert(dimensions.height > dimensions.width, 'Daily calendar must use portrait dimensions');
+  if (selection !== 'calendar') assert(dimensions.height > 8192, 'Dense day must exercise tiled PNG export');
   await preview.getByRole('button', { name: 'Close', exact: true }).click();
   await preview.waitFor({ state: 'hidden' });
   await context.close();
@@ -254,14 +253,14 @@ async function geometry(browser) {
   const text = (target) => data.filter(({ text }) => text === target);
   const overlaps = text('09:05–09:20');
   assert.equal(overlaps.length, 2);
-  assert.equal(overlaps[0].x, overlaps[1].x);
-  assert.notEqual(overlaps[0].y, overlaps[1].y, 'Overlaps must use separate rows');
-  assert(text('08:30–08:50')[0].x < overlaps[0].x);
-  assert(text('18:00–19:00  ·  Poster session')[0].x > overlaps[0].x);
+  assert.equal(overlaps[0].y, overlaps[1].y);
+  assert.notEqual(overlaps[0].x, overlaps[1].x, 'Overlaps must use separate columns');
+  assert(text('08:30–08:50')[0].y < overlaps[0].y);
+  assert(text('18:00–19:00  ·  Poster session')[0].y > overlaps[0].y);
   assert(text('DCC 2, Exhibition Hall').length >= 2);
   const [nine] = text('09:00');
   const [nineThirty] = text('09:30');
-  assert(nine.x < overlaps[0].x && overlaps[0].x < nineThirty.x);
+  assert(nine.y < overlaps[0].y && overlaps[0].y < nineThirty.y);
   await page.close();
 }
 
@@ -280,7 +279,9 @@ async function layout(browser, width, height) {
     const initial = await positions();
     assert.equal(await page.locator('.masthead').evaluate((node) =>
       getComputedStyle(node).getPropertyValue('--glass-fill').trim()), '#f7fbff24');
-    assert.match(await page.locator('h1').evaluate((node) => getComputedStyle(node).fontFamily), /Baskervville/);
+    await page.evaluate(() => document.fonts.ready);
+    assert.match(await page.locator('h1').evaluate((node) => getComputedStyle(node).fontFamily), /^Inter,/);
+    assert(await page.evaluate(() => document.fonts.check('560 32px Inter')));
     assert.match(await page.locator('body').evaluate((node) => getComputedStyle(node, '::before').backgroundImage), /linear-gradient/);
     await page.evaluate(() => window.scrollBy(0, 240));
     assert.deepEqual(await positions(), initial);
