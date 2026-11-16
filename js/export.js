@@ -276,16 +276,6 @@ function drawCalendar(ctx, layout, day, count, conflicts, clip) {
       }
     }
   }
-  if (clip.bottom >= height - 55) {
-    ctx.fillStyle = palette.muted;
-    font(ctx, 560, 20);
-    ctx.fillText('KOREA STANDARD TIME · UTC+9', margin, height - 25);
-    if (grid.length) {
-      ctx.textAlign = 'right';
-      ctx.fillText('Time intervals expand to fit text.', width - margin, height - 25);
-      ctx.textAlign = 'left';
-    }
-  }
 }
 
 function canvasBlob(canvas) {
