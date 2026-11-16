@@ -1,13 +1,21 @@
 import { longDay, roomLabel, timeLabel } from './programme.js';
 
 const width = 1080;
-const margin = 76;
-const maxBody = 1350;
+// Keep the canvas within 4.86 megapixels, including on phone browsers.
+const maxHeight = 4500;
+const headerHeight = 254;
+const footerHeight = 73;
+const edge = 54;
+const rail = 231;
+const textX = 263;
+const right = width - edge;
 const fontFamily = 'system-ui, sans-serif';
 const palette = {
-  ink: '#182c28', muted: '#48645d', teal: '#245e50', line: '#dae5df',
-  panel: '#fbfaf6', white: '#fffefa', deep: '#163e35',
+  ink: '#202b3d', muted: '#4f5e75', accent: '#315883', line: '#dbe4f0',
+  panel: '#fbfcff', rail: '#f0f4fb', blue: '#7794bc', rim: '#d0dcec',
 };
+const comfortable = { title: 39, leading: 47, meta: 27, metaLeading: 34, padding: 20, gap: 8 };
+const compact = { title: 32, leading: 37, meta: 24, metaLeading: 28, padding: 10, gap: 5 };
 const graphemes = typeof Intl.Segmenter === 'function'
   ? new Intl.Segmenter(undefined, { granularity: 'grapheme' }) : null;
 
@@ -49,96 +57,140 @@ function rounded(ctx, x, y, w, h, r) {
   ctx.closePath();
 }
 
+function layoutRows(ctx, items, sessions, style) {
+  return items.map((item) => {
+    font(ctx, 650, style.title);
+    const title = wrap(ctx, item.title || 'Not specified', right - textX);
+    font(ctx, 560, style.meta);
+    const codeWidth = item.code ? ctx.measureText(item.code).width + 24 : 0;
+    font(ctx, 480, style.meta);
+    const room = wrap(ctx, roomLabel(sessions.get(item.sessionId)), right - textX - codeWidth);
+    const label = item.start && item.end ? timeLabel(item) : 'Time not set';
+    const note = item.sharedWindow ? 'Poster window' : item.timeNote ? 'Check time' : '';
+    const height = 2 * style.padding + title.length * style.leading + style.gap + room.length * style.metaLeading;
+    return { item, title, room, label, note, height };
+  });
+}
+
 export function agendaCards(day, items, sessions) {
   if (!items.length) return [];
   const measure = document.createElement('canvas').getContext('2d');
-  const parts = [[]];
+  const capacity = maxHeight - headerHeight - footerHeight;
+  let style = items.length <= 7 ? comfortable : compact;
+  let rows = layoutRows(measure, items, sessions, style);
+  if (style === comfortable && rows.reduce((sum, row) => sum + row.height, 0) > capacity) {
+    style = compact;
+    rows = layoutRows(measure, items, sessions, style);
+  }
+  const pages = [[]];
   let used = 0;
-  for (const item of items) {
-    font(measure, 650, 42);
-    const title = wrap(measure, item.title || 'Not specified', width - margin * 2 - 28);
-    font(measure, 500, 30);
-    const room = wrap(measure, roomLabel(sessions.get(item.sessionId)), width - margin * 2 - 28);
-    const height = 93 + title.length * 52 + room.length * 38;
-    if (used && used + height > maxBody) {
-      parts.push([]);
+  for (const row of rows) {
+    if (used && used + row.height > capacity) {
+      pages.push([]);
       used = 0;
     }
-    parts.at(-1).push({ item, title, room, height });
-    used += height;
+    pages.at(-1).push(row);
+    used += row.height;
   }
-  return parts.map((rows, index) => () => drawCard(day, rows, index, parts.length));
+  return pages.map((page, index) => () => drawCard(day, page, style, index, pages.length));
 }
 
-function drawCard(day, rows, index, total) {
+function drawCard(day, rows, style, index, total) {
   const canvas = document.createElement('canvas');
   canvas.width = width;
-  canvas.height = 323 + rows.reduce((sum, row) => sum + row.height, 0) + 96;
+  canvas.height = headerHeight + rows.reduce((sum, row) => sum + row.height, 0) + footerHeight;
+  const partText = total > 1 ? ` Part ${index + 1} of ${total}.` : '';
   canvas.setAttribute('role', 'img');
-  canvas.setAttribute('aria-label', `Agenda card for ${longDay(day)}. Part ${index + 1} of ${total}. ${rows.length} presentations.`);
+  canvas.setAttribute('aria-label', `Agenda card for ${longDay(day)}.${partText} ${rows.length} presentations.`);
   const ctx = canvas.getContext('2d');
   ctx.fillStyle = palette.panel;
   ctx.fillRect(0, 0, width, canvas.height);
-  rounded(ctx, 33, 33, width - 66, 266, 32);
-  const header = ctx.createLinearGradient(0, 0, width, 310);
-  header.addColorStop(0, palette.deep);
-  header.addColorStop(1, palette.teal);
+  const header = ctx.createLinearGradient(33, 20, right, headerHeight);
+  header.addColorStop(0, '#f7faff');
+  header.addColorStop(1, '#dce7f9');
+  rounded(ctx, 29, 26, width - 58, 204, 24);
   ctx.fillStyle = header;
   ctx.fill();
+  ctx.strokeStyle = palette.rim;
+  ctx.lineWidth = 2;
+  ctx.stroke();
   ctx.save();
   ctx.clip();
-  ctx.strokeStyle = '#ffffff23';
-  ctx.lineWidth = 2;
-  for (const radius of [92, 130, 170, 212]) {
+  ctx.strokeStyle = '#617ba42a';
+  for (const radius of [77, 109, 143, 181]) {
     ctx.beginPath();
-    ctx.arc(1005, 96, radius, 0, Math.PI * 2);
+    ctx.arc(989, 95, radius, 0, Math.PI * 2);
     ctx.stroke();
   }
   ctx.restore();
-  ctx.fillStyle = '#d8ede3';
-  font(ctx, 700, 28);
-  ctx.fillText('WCPEC-9  /  DAEJEON', margin, 96);
-  ctx.fillStyle = palette.white;
-  font(ctx, 660, 78);
-  ctx.fillText('My Agenda', margin, 186);
-  font(ctx, 470, 32);
-  ctx.fillText(longDay(day), margin, 252);
+  ctx.fillStyle = palette.accent;
+  font(ctx, 690, 23);
+  ctx.fillText('WCPEC-9  /  DAEJEON', edge + 14, 79);
+  ctx.fillStyle = palette.ink;
+  font(ctx, 680, 66);
+  ctx.fillText('My Agenda', edge + 12, 151);
+  ctx.fillStyle = palette.muted;
+  font(ctx, 520, 30);
+  ctx.fillText(longDay(day), edge + 14, 197);
 
-  let top = 323;
-  for (const { item, title, room, height } of rows) {
-    const x = margin + 28;
-    ctx.fillStyle = '#89ac9e';
-    ctx.beginPath();
-    ctx.arc(margin + 4, top + 35, 5, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.fillStyle = palette.teal;
-    font(ctx, 700, 30);
-    ctx.fillText(timeLabel(item) + (item.sharedWindow ? ' · Poster window' : item.timeNote ? ' · Check programme time' : ''), x, top + 46);
-    if (item.code) {
-      ctx.textAlign = 'right';
-      font(ctx, 530, 24);
-      ctx.fillText(item.code, width - margin, top + 46);
-      ctx.textAlign = 'left';
+  const bottom = canvas.height - footerHeight;
+  ctx.fillStyle = palette.rail;
+  rounded(ctx, edge - 7, headerHeight, rail - edge - 5, bottom - headerHeight, 15);
+  ctx.fill();
+  ctx.strokeStyle = palette.rim;
+  ctx.beginPath();
+  ctx.moveTo(rail + 4, headerHeight + 9);
+  ctx.lineTo(rail + 4, bottom - 9);
+  ctx.stroke();
+  let top = headerHeight;
+  let lastSlot;
+  for (const { item, title, room, label, note, height } of rows) {
+    const previousSlot = lastSlot;
+    lastSlot = label + note;
+    const newSlot = lastSlot !== previousSlot;
+    if (top > headerHeight) {
+      ctx.strokeStyle = palette.line;
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(newSlot ? edge + 10 : textX, top);
+      ctx.lineTo(right, top);
+      ctx.stroke();
+    }
+    if (newSlot) {
+      ctx.fillStyle = palette.blue;
+      ctx.beginPath();
+      ctx.arc(rail + 4, top + style.padding + 13, 6, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = palette.accent;
+      font(ctx, 690, style === compact ? 24 : 26);
+      ctx.fillText(label, edge + 9, top + style.padding + 24);
+      if (note) {
+        ctx.fillStyle = palette.muted;
+        font(ctx, 520, 21);
+        ctx.fillText(note, edge + 9, top + style.padding + 52);
+      }
     }
     ctx.fillStyle = palette.ink;
-    font(ctx, 650, 42);
-    title.forEach((line, i) => ctx.fillText(line, x, top + 105 + i * 52));
+    font(ctx, 650, style.title);
+    title.forEach((line, i) => ctx.fillText(line, textX, top + style.padding + style.title + i * style.leading));
+    const metaY = top + style.padding + title.length * style.leading + style.gap + style.meta - 2;
     ctx.fillStyle = palette.muted;
-    font(ctx, 500, 30);
-    room.forEach((line, i) => ctx.fillText(line, x, top + 101 + title.length * 52 + i * 38));
+    font(ctx, 480, style.meta);
+    room.forEach((line, i) => ctx.fillText(line, textX, metaY + i * style.metaLeading));
+    if (item.code) {
+      ctx.textAlign = 'right';
+      font(ctx, 560, style.meta);
+      ctx.fillText(item.code, right, metaY);
+      ctx.textAlign = 'left';
+    }
     top += height;
-    ctx.strokeStyle = palette.line;
-    ctx.beginPath();
-    ctx.moveTo(margin, top);
-    ctx.lineTo(width - margin, top);
-    ctx.stroke();
   }
 
   ctx.fillStyle = palette.muted;
-  font(ctx, 570, 25);
-  ctx.fillText('KOREA STANDARD TIME · UTC+9', margin, top + 58);
+  font(ctx, 590, 22);
+  ctx.fillText('KOREA STANDARD TIME · UTC+9', edge, bottom + 44);
   ctx.textAlign = 'right';
-  ctx.fillText(total > 1 ? `PART ${index + 1} / ${total}` : 'WCPEC-9', width - margin, top + 58);
+  if (total > 1) ctx.fillText(`PART ${index + 1} / ${total}`, right, bottom + 44);
   return canvas;
 }
 

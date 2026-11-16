@@ -34,7 +34,7 @@ async function verifyPng(page, label, name) {
   const expected = await page.locator('.card-preview canvas').evaluate((canvas) => canvas.toDataURL('image/png').split(',')[1]);
   const [download] = await Promise.all([page.waitForEvent('download'), page.getByRole('button', { name: label, exact: true }).click()]);
   assert.equal(download.suggestedFilename(), name);
-  const file = path.join(output, name);
+  const file = path.join(output, label === 'Download PNG' ? `single-${await page.locator('.agenda-list .talk-row').count()}-${name}` : name);
   await download.saveAs(file);
   const buffer = await fs.readFile(file);
   assert.equal(buffer.subarray(0, 8).toString('hex'), '89504e470d0a1a0a');
@@ -53,13 +53,18 @@ async function functional(browser) {
   page.on('request', (request) => requests.push(request.url()));
   await page.goto(base);
   await page.getByRole('button', { name: /Mon,? 16 Nov/ }).click();
-  await page.locator('.timetable').waitFor();
+  assert.equal(await page.locator('#navigation a').count(), 2);
+  assert.equal(await page.locator('.time-block[open]').count(), 1);
+  await page.screenshot({ path: path.join(output, 'desktop.png') });
+  const parallel = page.locator('.time-summary').filter({ hasText: '15:00 start' });
+  await parallel.click();
+  await page.locator('.time-block[open] .session-card').filter({ hasText: '2AO.1' }).waitFor();
   const loadMs = await page.evaluate(() => {
     const file = performance.getEntriesByType('resource').find((entry) => entry.name.endsWith('/data/programme.json'));
     return Math.round(file.duration);
   });
-  await page.screenshot({ path: path.join(output, 'desktop.png') });
-  const session = page.locator('.timetable').getByRole('button', { name: /2AO\.1/ });
+  await page.screenshot({ path: path.join(output, 'desktop-expanded.png') });
+  const session = page.locator('.time-block[open]').getByRole('button', { name: /2AO\.1/ });
   await session.click();
   await page.getByRole('dialog').getByRole('button', { name: /Machine Learning Applications/ }).first().click();
   assert.match(await page.locator('#detail-content').innerText(), /Chenyun Pan, Xuefeng Han, Shuai Yuan, Xuegong Yu, Deren Yang/);
@@ -70,10 +75,9 @@ async function functional(browser) {
   await page.keyboard.press('Escape');
   await page.getByRole('dialog').waitFor({ state: 'hidden' });
   assert(await session.evaluate((node) => node === document.activeElement));
-  await page.getByRole('button', { name: 'Switch to list view' }).click();
-  assert.equal(await page.locator('.timetable').count(), 0);
-  await page.getByRole('button', { name: 'Switch to room timetable' }).click();
-  await switchView(page, 'explore');
+  await parallel.click();
+  assert.equal(await page.locator('.time-block[open] .session-card').filter({ hasText: '2AO.1' }).count(), 0);
+  await page.getByRole('button', { name: 'Filters', exact: true }).click();
   const searchMs = await page.evaluate(() => {
     const start = performance.now();
     const input = document.querySelector('.query');
@@ -90,10 +94,13 @@ async function functional(browser) {
   await page.locator('select[name="type"]').selectOption('poster');
   await page.getByRole('heading', { name: 'No presentations found' }).waitFor();
   await switchView(page, 'agenda');
-  await switchView(page, 'explore');
+  await switchView(page, 'programme');
   assert.equal(await page.getByRole('searchbox').inputValue(), 'xuefeng han machine learning');
   assert.equal(await page.locator('select[name="type"]').inputValue(), 'poster');
-  for (const filter of ['type', 'date', 'track', 'room']) await page.locator(`select[name="${filter}"]`).selectOption('');
+  await page.getByRole('button', { name: 'Clear search and filters' }).click();
+  await page.getByRole('group', { name: 'Programme dates' }).waitFor();
+  await page.getByRole('button', { name: /Filters/ }).click();
+  assert.equal(await page.locator('#programme-filters').isVisible(), false);
   await save(page, '2AO.1-OP-4');
   await switchView(page, 'agenda');
   assert.equal(await page.getByText('Time overlap', { exact: true }).count(), 0);
@@ -101,13 +108,13 @@ async function functional(browser) {
   await page.reload();
   await page.locator('.agenda-layout').waitFor();
   assert.equal(await page.locator('.talk-row').count(), 2);
-  await switchView(page, 'explore');
+  await switchView(page, 'programme');
   await save(page, '3AO.1-IV-2');
   await save(page, '2-1-AP-01');
   await save(page, '2-1-AP-02');
   await switchView(page, 'agenda');
   assert.equal(await page.getByText('Time overlap', { exact: true }).count(), 2);
-  const times = await page.locator('.talk-location').allTextContents();
+  const times = await page.locator('.agenda-time').allTextContents();
   assert.deepEqual(times, [...times].sort());
   assert.equal(times.filter((value) => value.includes('18:00–19:00')).length, 2);
   await page.locator('[data-save$="3AO.1-IV-2"]').click();
@@ -119,6 +126,7 @@ async function functional(browser) {
   await page.getByRole('button', { name: 'Clear agenda', exact: true }).click();
   await page.getByRole('heading', { name: 'Your agenda is empty for this day' }).waitFor();
   assert.deepEqual(await page.evaluate((key) => JSON.parse(localStorage.getItem(key)), storageKey), []);
+  await page.getByText('Made by Sathya · TU Delft', { exact: true }).waitFor();
   const origin = new URL(base).origin;
   assert(requests.every((request) => new URL(request).origin === origin), 'Unexpected external asset request');
   assert.deepEqual(errors, []);
@@ -126,40 +134,42 @@ async function functional(browser) {
   await context.close();
 }
 
-async function denseCards(browser) {
+async function denseCards(browser, count) {
   const context = await browser.newContext({ viewport: { width: 390, height: 844 }, acceptDownloads: true });
   const page = await context.newPage();
   const dense = dataset.presentations.filter((item) => item.date === monday && item.type === 'poster')
-    .sort((a, b) => b.title.length - a.title.length).slice(0, 20);
+    .sort((a, b) => b.title.length - a.title.length).slice(0, count);
   await page.addInitScript(({ key, ids }) => {
     if (localStorage.getItem(key) === null) localStorage.setItem(key, JSON.stringify(ids));
   }, { key: storageKey, ids: [...dense.map((item) => item.id), 'removed-record'] });
   await page.goto(base + '#agenda');
   await page.getByRole('heading', { name: 'Daily agenda card' }).waitFor();
-  await page.screenshot({ path: path.join(output, 'mobile-agenda.png'), fullPage: true });
+  await page.getByRole('button', { name: 'Preview agenda card' }).click();
+  if (count === 20) await page.screenshot({ path: path.join(output, 'mobile-agenda.png') });
   await noOverflow(page);
-  assert.equal(await page.locator('.talk-row').count(), dense.length);
-  const partCount = Number((await page.locator('.pagination span').textContent()).split(' of ')[1]);
-  assert(partCount > 1);
+  assert.equal(await page.locator('.talk-row').count(), count);
+  const pagination = page.locator('.pagination span');
+  const partCount = await pagination.count() ? Number((await pagination.textContent()).split(' of ')[1]) : 1;
+  assert.equal(partCount > 1, count > 20);
   let total = 0;
   for (let part = 1; part <= partCount; part++) {
     const canvas = page.locator('.card-preview canvas');
     const label = await canvas.getAttribute('aria-label');
     total += Number(label.match(/(\d+) presentations\.$/)[1]);
-    const suffix = String(part).padStart(2, '0');
-    const height = await verifyPng(page, `Download part ${part} PNG`, `WCPEC9-Agenda-2026-11-16-part-${suffix}.png`);
-    assert(height < 1770, 'Card height should stay within the phone-friendly limit');
+    const suffix = partCount === 1 ? '' : `-part-${String(part).padStart(2, '0')}`;
+    const download = partCount === 1 ? 'Download PNG' : `Download part ${part} PNG`;
+    const height = await verifyPng(page, download, `WCPEC9-Agenda-2026-11-16${suffix}.png`);
+    assert(height <= 4500, 'Card height should stay within the canvas limit');
     if (part < partCount) await page.getByRole('button', { name: 'Next', exact: true }).click();
   }
-  assert.equal(total, dense.length);
+  assert.equal(total, count);
   if (partCount > 1) {
-    for (let part = partCount; part > 1; part--) await page.getByRole('button', { name: 'Previous', exact: true }).click();
+    const bulk = [];
+    page.on('download', (download) => bulk.push(download.suggestedFilename()));
+    await page.getByRole('button', { name: 'Download all PNGs' }).click();
+    await page.getByText('Download requests sent.', { exact: false }).waitFor();
+    assert.equal(new Set(bulk).size, partCount);
   }
-  const bulk = [];
-  page.on('download', (download) => bulk.push(download.suggestedFilename()));
-  await page.getByRole('button', { name: 'Download all PNGs' }).click();
-  await page.getByText('Download requests sent.', { exact: false }).waitFor();
-  assert.equal(new Set(bulk).size, partCount);
   // Inspect draw calls separately from pixels to check that the renderer carries
   // exact selected text, including scientific Unicode, into each card.
   const rendered = await page.evaluate(async ({ ids }) => {
@@ -170,7 +180,8 @@ async function denseCards(browser) {
     const original = CanvasRenderingContext2D.prototype.fillText;
     CanvasRenderingContext2D.prototype.fillText = function (value, x, y) {
       if (!texts.has(this.canvas)) texts.set(this.canvas, []);
-      texts.get(this.canvas).push({ value, x, y, width: this.measureText(value).width });
+      const width = this.measureText(value).width;
+      texts.get(this.canvas).push({ value, x: this.textAlign === 'right' ? x - width : x, y, width });
       return original.call(this, value, x, y);
     };
     const items = ids.map((id) => programme.talkById.get(id)).sort(chronological);
@@ -183,9 +194,10 @@ async function denseCards(browser) {
     assert(strings.join(' ').includes(item.title), `Missing or clipped title for ${item.code}`);
   }
   assert(strings.includes('DCC 2, Exhibition Hall'));
-  assert(strings.includes('18:00–19:00 · Poster window'));
+  assert.equal(strings.filter((value) => value === '18:00–19:00').length, partCount);
+  assert.equal(strings.filter((value) => value === 'Poster window').length, partCount);
   for (const card of rendered) {
-    assert(card.words.every((word) => word.y < card.height && word.width < 940));
+    assert(card.words.every((word) => word.y < card.height && word.x > 0 && word.x + word.width <= 1027));
   }
   await context.close();
 }
@@ -198,15 +210,27 @@ async function layout(browser, width, height) {
   const cards = page.locator('.session-card:visible');
   await cards.first().waitFor();
   await noOverflow(page);
-  if (width === 390) await page.screenshot({ path: path.join(output, 'mobile.png') });
+  if (width === 390) {
+    await page.screenshot({ path: path.join(output, 'mobile.png') });
+    const treatment = await page.locator('#navigation').evaluate((node) => getComputedStyle(node).backdropFilter);
+    assert(treatment.includes('blur') && treatment.includes('glass-refraction'));
+  }
   await cards.first().click();
   await page.getByRole('dialog').waitFor();
   await noOverflow(page);
+  if (width === 390) await page.screenshot({ path: path.join(output, 'mobile-sheet.png') });
   await page.getByRole('button', { name: 'Close details' }).click();
-  for (const view of ['explore', 'agenda']) {
-    await switchView(page, view);
-    await noOverflow(page);
+  await page.getByRole('button', { name: 'Filters', exact: true }).click();
+  await page.locator('select[name="type"]').selectOption('poster');
+  await page.locator('.talk-row').first().waitFor();
+  await noOverflow(page);
+  if (width === 390) {
+    await page.emulateMedia({ contrast: 'more', reducedMotion: 'reduce' });
+    const fallback = await page.locator('#navigation').evaluate((node) => getComputedStyle(node).backdropFilter);
+    assert.equal(fallback, 'none');
   }
+  await switchView(page, 'agenda');
+  await noOverflow(page);
   await context.close();
 }
 
@@ -240,6 +264,7 @@ async function reliability(browser) {
   if (subpath) {
     const project = await context.newPage();
     await project.goto(subpath + '#explore');
+    assert.equal(await project.locator('#navigation [aria-current=page]').getAttribute('data-view'), 'programme');
     await search(project, '5DO.15-OP-3');
     assert.equal(await project.locator('.talk-row').count(), 1);
     await project.close();
@@ -260,7 +285,8 @@ async function reliability(browser) {
     }
   }
   await run(functional);
-  await run(denseCards);
+  await run((browser) => denseCards(browser, 20));
+  await run((browser) => denseCards(browser, 52));
   for (const [width, height] of [[375, 812], [390, 844], [430, 932], [768, 1024], [1440, 900]]) {
     await run((browser) => layout(browser, width, height));
   }

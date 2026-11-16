@@ -6,12 +6,12 @@ const byId = (id) => document.getElementById(id);
 const content = byId('content');
 const dialog = byId('details');
 const clearDialog = byId('clear-dialog');
-const views = {
-  programme: ['Programme', 'Browse sessions and presentations by day. All times are in Korea Standard Time.'],
-  explore: ['Explore', 'Find presentations by title, author, code or topic.'],
-  agenda: ['My Agenda', 'Review your saved presentations and download a daily agenda card.'],
+const views = { programme: 'Programme', agenda: 'My Agenda' };
+const state = {
+  view: 'programme', programmeDate: '', agendaDate: '', filters: {}, filtersOpen: false,
+  ids: new Set(), openBlocks: new Map(),
 };
-const state = { view: 'programme', programmeDate: '', agendaDate: '', filters: {}, ids: new Set(), grid: true };
+const filterKeys = ['date', 'track', 'type', 'room'];
 const pageSize = 40;
 let programme;
 let detail;
@@ -47,13 +47,20 @@ function sessionRoom(session) {
 
 function dateControls(key) {
   const nav = element('div', 'dates glass');
-  nav.setAttribute('aria-label', 'Choose a programme date');
+  nav.setAttribute('role', 'group');
+  nav.setAttribute('aria-label', key === 'agendaDate' ? 'Agenda dates' : 'Programme dates');
   for (const date of programme.dates) {
-    const picker = button(dayLabel(date), 'date', () => {
+    const [weekday, day, month] = dayLabel(date).replace(',', '').split(' ');
+    const picker = button('', 'date', () => {
+      if (state[key] === date) return;
       state[key] = date;
-      render();
+      if (key === 'programmeDate') renderDay();
+      else renderAgenda();
       content.querySelector('[aria-pressed="true"].date')?.focus({ preventScroll: true });
     });
+    picker.append(element('span', 'date-weekday', weekday), element('strong', 'date-day', day),
+      element('span', 'date-month', month));
+    picker.setAttribute('aria-label', dayLabel(date));
     picker.setAttribute('aria-pressed', String(date === state[key]));
     if (key === 'agendaDate') {
       const count = [...state.ids].filter((id) => programme.talkById.get(id).date === date).length;
@@ -75,82 +82,65 @@ function badge(type) {
 function sessionCard(session) {
   const count = programme.bySession.get(session.id).length;
   const card = button('', 'session-card', (event) => showDetails('session', session.id, event.currentTarget));
-  card.append(
-    element('span', 'meta', [badge(session.type), ...(session.code ? [element('span', 'code', session.code)] : [])]),
-    element('strong', 'session-title', session.title),
-    element('span', 'session-time', time(session)),
-    element('span', 'session-location', sessionRoom(session)),
-  );
-  if (count) card.append(element('span', 'session-count', `${count} presentation${count === 1 ? '' : 's'} →`));
+  card.setAttribute('aria-haspopup', 'dialog');
+  const meta = session.code ? [element('span', 'code', session.code), badge(session.type)] : [badge(session.type)];
+  const summary = [sessionRoom(session), count ? `${count} talk${count === 1 ? '' : 's'}` : ''].filter(Boolean).join(' · ');
+  const arrow = element('span', 'session-arrow');
+  arrow.setAttribute('aria-hidden', 'true');
+  card.append(element('span', 'meta', meta), element('strong', 'session-title', session.title),
+    element('span', 'session-time', time(session)), element('span', 'session-location', summary), arrow);
   return card;
 }
 
 function groupedSessions(sessions) {
   const groups = new Map();
   for (const session of sessions) {
-    const label = session.start || 'Time not specified';
-    if (!groups.has(label)) groups.set(label, []);
-    groups.get(label).push(session);
+    const start = session.start || '';
+    if (!groups.has(start)) groups.set(start, []);
+    groups.get(start).push(session);
   }
   const output = element('div', 'timeline');
-  for (const [label, entries] of groups) {
-    output.append(element('section', 'time-group', [
-      element('h3', 'time-axis', label),
-      element('div', 'session-list', entries.map(sessionCard)),
-    ]));
+  const date = state.programmeDate;
+  if (!state.openBlocks.has(date)) {
+    const initial = [...groups].find(([, entries]) => entries.some((item) => programme.bySession.get(item.id).length));
+    state.openBlocks.set(date, new Set(initial ? [initial[0]] : []));
+  }
+  const expanded = state.openBlocks.get(date);
+  for (const [start, entries] of groups) {
+    const ends = new Set(entries.map((item) => item.end));
+    const range = ends.size === 1 ? time(entries[0]) : `${start} start`;
+    const block = element('details', 'time-block');
+    block.open = expanded.has(start);
+    const posterBlock = entries.every((item) => item.type === 'poster' || item.title === 'Poster Session');
+    const label = entries.length === 1 ? entries[0].title
+      : posterBlock ? 'Poster session' : `${entries.length} parallel sessions`;
+    const context = entries.length === 1 ? sessionRoom(entries[0])
+      : posterBlock ? `${entries.filter((item) => item.type === 'poster').length} poster areas`
+        : [...new Set(entries.map((item) => typeLabel(item.type)))].join(' · ');
+    const chevron = element('span', 'chevron');
+    chevron.setAttribute('aria-hidden', 'true');
+    const summary = element('summary', 'time-summary', [
+      element('span', 'time-axis', range),
+      element('span', 'time-summary-text', [element('strong', '', label), ...(context ? [element('span', '', context)] : [])]),
+      chevron,
+    ]);
+    block.append(summary, element('div', 'session-list', entries.map(sessionCard)));
+    block.addEventListener('toggle', () => {
+      if (block.open) expanded.add(start);
+      else expanded.delete(start);
+    });
+    output.append(block);
   }
   return output;
 }
 
-function roomNumber(session) {
-  return /^Session Room ([1-7])/.exec(session.room || '')?.[1]
-    || (/^Room 301/.test(session.room || '') ? '7' : '')
-    || (/Grand Ballroom \(201\+202\)/.test(session.room || '') ? '5' : '');
-}
-
-function renderProgramme() {
+function renderDay() {
   const sessions = programme.sessions.filter((session) => session.date === state.programmeDate).sort(chronological);
-  const heading = element('h2', '', longDay(state.programmeDate));
-  const toggle = button(state.grid ? 'List view' : 'Room timetable', 'button subtle grid-switch', () => {
-    state.grid = !state.grid;
-    render();
-    content.querySelector('.grid-switch')?.focus();
-  });
-  toggle.setAttribute('aria-label', state.grid ? 'Switch to list view' : 'Switch to room timetable');
-  const technical = sessions.filter((session) => roomNumber(session) && session.type !== 'poster');
-  const columns = [...new Set(technical.map(roomNumber))].sort();
-  const useGrid = columns.length > 1 && state.grid;
-  const header = element('div', 'section-header', [heading, ...(columns.length > 1 ? [toggle] : [])]);
-  content.replaceChildren(dateControls('programmeDate'), header);
-  if (useGrid) {
-    const table = element('table', 'timetable');
-    const colGroup = element('colgroup', '');
-    colGroup.append(element('col', 'time-col'), ...columns.map(() => element('col', '')));
-    const head = element('thead', '', [element('tr', '', [
-      element('th', '', 'Start (KST)'),
-      ...columns.map((number) => element('th', '', 'Room ' + number)),
-    ])]);
-    for (const th of head.querySelectorAll('th')) th.scope = 'col';
-    const body = element('tbody', '');
-    const starts = [...new Set(technical.map((session) => session.start))];
-    for (const start of starts) {
-      const hour = element('th', 'time-axis', start || 'Not specified');
-      hour.scope = 'row';
-      body.append(element('tr', '', [hour, ...columns.map((number) => element('td', '',
-        technical.filter((session) => session.start === start && roomNumber(session) === number).map(sessionCard),
-      ))]));
-    }
-    table.append(colGroup, head, body);
-    const elsewhere = sessions.filter((session) => !technical.includes(session));
-    const grid = element('div', 'desktop-schedule', [table]);
-    if (elsewhere.length) {
-      grid.append(element('h2', 'other-heading', 'Other locations and events'), groupedSessions(elsewhere));
-    }
-    content.append(grid);
+  const heading = element('div', 'section-header', [element('h2', '', longDay(state.programmeDate))]);
+  byId('programme-results').replaceChildren(heading, groupedSessions(sessions));
+  for (const picker of content.querySelectorAll('.date')) {
+    picker.setAttribute('aria-pressed', String(picker.getAttribute('aria-label') === dayLabel(state.programmeDate)));
   }
-  const list = groupedSessions(sessions);
-  list.classList.toggle('mobile-schedule', useGrid);
-  content.append(list);
 }
 
 function selectionButton(item, compact) {
@@ -171,7 +161,9 @@ function talkRow(item, options = {}) {
   const meta = [badge(item.type)];
   if (item.code) meta.push(element('span', 'code', item.code));
   if (options.date) meta.push(element('span', 'code', dayLabel(item.date)));
-  const location = [time(item), !options.inside && roomLabel(parent)].filter(Boolean).join(' · ');
+  detailButton.setAttribute('aria-haspopup', 'dialog');
+  const location = [!options.agenda && time(item), !options.inside && roomLabel(parent)].filter(Boolean).join(' · ');
+  if (options.agenda) detailButton.append(element('span', 'agenda-time', time(item)));
   detailButton.append(element('span', 'meta', meta), element('strong', 'talk-title', item.title || 'Not specified'),
     element('span', 'talk-location', location));
   if (options.search && item.authors.length) {
@@ -184,10 +176,10 @@ function talkRow(item, options = {}) {
   return article;
 }
 
-function filterControl(key, label, entries) {
+function filterControl(key, label, all, entries) {
   const input = element('select', '');
   input.name = key;
-  input.append(new Option('All ' + label.toLowerCase(), ''));
+  input.append(new Option(all, ''));
   for (const [value, description] of entries) input.append(new Option(description, value));
   input.value = state.filters[key] || '';
   input.addEventListener('change', () => {
@@ -198,10 +190,10 @@ function filterControl(key, label, entries) {
   return element('label', 'filter', [element('span', '', label), input]);
 }
 
-function renderExplore() {
+function renderProgramme() {
   const query = element('input', 'query');
   query.type = 'search';
-  query.placeholder = 'Search presentations';
+  query.placeholder = 'Title, author or code';
   query.value = state.filters.query || '';
   query.addEventListener('input', () => {
     state.filters.query = query.value;
@@ -213,21 +205,54 @@ function renderExplore() {
   const rooms = [...new Map(programme.sessions.filter((item) => item.room)
     .map((item) => [roomKey(item.room), item.room])).entries()].sort((a, b) => a[1].localeCompare(b[1]));
   const filters = element('div', 'filters', [
-    filterControl('date', 'Dates', programme.dates.map((item) => [item, dayLabel(item)])),
-    filterControl('track', 'Areas', tracks.map((item) => [item, item])),
-    filterControl('type', 'Types', types.map((item) => [item, typeLabel(item)])),
-    filterControl('room', 'Rooms', rooms),
+    filterControl('date', 'Date', 'All dates', programme.dates.map((item) => [item, dayLabel(item)])),
+    filterControl('track', 'Area', 'All areas', tracks.map((item) => [item, item])),
+    filterControl('type', 'Type', 'All types', types.map((item) => [item, typeLabel(item)])),
+    filterControl('room', 'Room', 'All rooms', rooms),
   ]);
+  filters.id = 'programme-filters';
+  filters.hidden = !state.filtersOpen;
+  const filterButton = button('Filters', 'button filter-toggle', () => {
+    state.filtersOpen = !state.filtersOpen;
+    filters.hidden = !state.filtersOpen;
+    filterButton.setAttribute('aria-expanded', String(state.filtersOpen));
+  });
+  filterButton.id = 'filter-toggle';
+  filterButton.setAttribute('aria-controls', filters.id);
+  filterButton.setAttribute('aria-expanded', String(state.filtersOpen));
   const queryLabel = element('label', 'search-label', [element('span', 'sr-only', 'Search presentations'), query]);
+  const reset = button('Clear search and filters', 'button text-button', () => {
+    state.filters = {};
+    resultLimit = pageSize;
+    query.value = '';
+    filters.querySelectorAll('select').forEach((input) => { input.value = ''; });
+    renderResults();
+    query.focus({ preventScroll: true });
+  });
+  reset.id = 'clear-filters';
+  const toolbar = element('div', 'search-controls glass', [
+    element('div', 'search-line', [queryLabel, filterButton]), filters,
+  ]);
+  const days = dateControls('programmeDate');
+  days.id = 'programme-dates';
   const results = element('div', 'results');
-  results.id = 'results';
-  content.replaceChildren(element('div', 'search-controls glass', [queryLabel, filters]), results);
+  results.id = 'programme-results';
+  content.replaceChildren(toolbar, days, reset, results);
   renderResults();
 }
 
 function renderResults() {
   const filters = state.filters;
   const tokens = normalize(filters.query || '').trim().split(/\s+/).filter(Boolean);
+  const filterCount = filterKeys.filter((key) => filters[key]).length;
+  const searching = Boolean(tokens.length || filterCount);
+  byId('programme-dates').hidden = searching;
+  byId('clear-filters').hidden = !searching;
+  byId('filter-toggle').textContent = filterCount ? `Filters · ${filterCount}` : 'Filters';
+  if (!searching) {
+    renderDay();
+    return;
+  }
   const matches = programme.presentations.filter((item) => {
     const session = programme.sessionById.get(item.sessionId);
     return (!filters.date || item.date === filters.date)
@@ -238,7 +263,7 @@ function renderResults() {
   });
   const summary = element('p', 'results-summary', `${matches.length.toLocaleString('en-GB')} presentation${matches.length === 1 ? '' : 's'}`);
   summary.setAttribute('role', 'status');
-  const results = byId('results');
+  const results = byId('programme-results');
   results.replaceChildren(summary);
   if (!matches.length) {
     results.append(empty('No presentations found', 'Try a different keyword or change the date, area, type or room filters.'));
@@ -270,13 +295,14 @@ function renderAgenda() {
   const savedNote = element('p', 'saved-note', 'Your selections are saved in this browser on this device.');
   content.append(savedNote);
   if (!items.length) {
-    content.append(empty('Your agenda is empty for this day', 'Save a presentation in Programme or Explore to add it to this day.'));
+    content.append(empty('Your agenda is empty for this day', 'Save a presentation from Programme to add it to this day.'));
     return;
   }
   if (overlapping.size) {
     content.append(element('p', 'notice', 'Some saved presentations overlap. You can keep both and decide which to attend.'));
   }
-  const list = element('div', 'talk-list', items.map((item) => talkRow(item, { overlap: overlapping.has(item.id) })));
+  const list = element('div', 'talk-list agenda-list',
+    items.map((item) => talkRow(item, { agenda: true, overlap: overlapping.has(item.id) })));
   const preview = element('section', 'export-panel surface');
   preview.id = 'agenda-preview';
   preview.tabIndex = -1;
@@ -323,7 +349,12 @@ function renderAgenda() {
       }
     }));
   }
-  preview.append(frame, pagination, actions, status);
+  if (cards.length > 1) {
+    preview.append(element('p', 'saved-note', 'This selection is too long for one readable image. Download the numbered parts in order.'));
+  }
+  frame.tabIndex = 0;
+  frame.setAttribute('aria-label', 'Agenda image preview');
+  preview.append(actions, pagination, frame, status);
   showCard();
   content.append(button('Preview agenda card', 'button subtle jump-preview', () => {
     preview.scrollIntoView({ block: 'start' });
@@ -419,15 +450,14 @@ function toggleAgenda(item) {
 }
 
 function render() {
-  const [title, description] = views[state.view];
-  byId('view-title').textContent = title;
-  byId('view-description').textContent = description;
+  byId('view-title').textContent = views[state.view];
   for (const link of byId('navigation').querySelectorAll('a')) {
     if (link.dataset.view === state.view) link.setAttribute('aria-current', 'page');
     else link.removeAttribute('aria-current');
   }
   navCount();
-  ({ programme: renderProgramme, explore: renderExplore, agenda: renderAgenda })[state.view]();
+  if (state.view === 'agenda') renderAgenda();
+  else renderProgramme();
 }
 
 function navigate(scroll = false) {
@@ -438,6 +468,7 @@ function navigate(scroll = false) {
   if (dialog.open) dialog.close();
   render();
   if (scroll) window.scrollTo({ top: 0, behavior: 'auto' });
+  if (key === 'explore') content.querySelector('.query')?.focus({ preventScroll: true });
 }
 
 async function start() {

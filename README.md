@@ -1,6 +1,6 @@
 # WCPEC-9 Conference Planner
 
-A static planner for 15–20 November 2026 in Daejeon. Browse the programme by day, search individual presentations, and save a private daily agenda. The agenda card preview renders the same canvas used for the 1080-pixel PNG download.
+A static planner for 15–20 November 2026 in Daejeon. Expand the day’s time blocks or search and filter individual presentations inside Programme. My Agenda saves selections locally and previews the same 1080-pixel-wide timeline PNG you can download. A day exports as one image when the selection fits within a readable canvas.
 
 ## Run locally
 
@@ -18,7 +18,7 @@ If you already have a local `development` branch, use `git switch development` a
 
 ## Files and data updates
 
-- `index.html`, `css/styles.css`, and `js/` contain the three views, agenda state and canvas renderer. The deployed site needs only these assets and `data/programme.json`.
+- `index.html`, `css/styles.css`, and `js/` contain Programme and My Agenda, the saved selections, and the canvas renderer. The deployed site needs only these assets and `data/programme.json`.
 - `data/programme.json` joins presentations to sessions by `sessionId`. Dates and times are in `Asia/Seoul`. Room and track come from the session. An entry’s `sourcePage` is the physical PDF page, starting at 1. `timetablePage` and `schedulePage` identify separate room or time evidence where applicable. A poster uses `sharedWindow: true` and its session window. A null field means its value was unavailable or inapplicable.
 - `scripts/extract_programme.py` rebuilds the data from the supplied November 2026 programme edition using PyMuPDF. `scripts/source_schedule.json` records the workshop, tutorial and special-event table transcriptions and source-specific corrections. Keep the original programme outside this public repository.
 

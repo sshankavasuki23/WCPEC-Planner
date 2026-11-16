@@ -1,25 +1,18 @@
 # Test results
 
-Tested 16 November 2026 with Python 3.12, Poppler `pdftotext`, Playwright and Chromium Headless Shell 153 on Linux. Local preview used Python’s static HTTP server on the site root and under `/WCPEC-Planner/`.
+The 16 November 2026 redesign was checked with Python, Poppler, Playwright and Chromium Headless Shell 153 on Linux. The static site was served both at the root and under `/WCPEC-Planner/`.
 
 | Check | Result |
 |---|---|
-| Data validation with the source PDF | Pass. 166 sessions and events, 1,326 presentation records, 12 content fixtures and all 87 technical room joins. All coded presentations reconciled against the independent extraction. |
-| Navigation and details | Pass. The suite exercised the room timetable, list toggle, mobile schedule, session and talk details, full author list, Escape and focus return. |
-| Explore | Pass. Search by multiple keywords across author and title, combine date, area, type and room filters, show an empty state, preserve selected filters across views. |
-| My Agenda | Pass. Save and remove across views, restore after reload, flag true overlaps, ignore adjoining endpoints and same-window posters, sort by time and confirm a clear. |
-| Storage and loading failures | Pass. Corrupt or stale saved IDs, blocked localStorage and a simulated programme load failure. |
-| PNG | Pass. Two-talk preview and download, and a 20-poster agenda across seven parts. Every PNG was 1080 pixels wide and byte-for-byte identical to its preview. The suite checked all individual and bulk download names, required title/time/room text, and layout bounds. The short card and a dense part were visually inspected. |
-| Responsive layout | Pass. 375×812, 390×844, 430×932, 768×1024 and 1440×900. The checks cover each view, usable detail controls and horizontal overflow. Desktop and phone-sized captures were visually inspected. |
-| HTTP paths and requests | Pass. Worked at root and at the Pages project subpath. The normal flow had no browser console errors or external runtime requests. |
-| Local responsiveness | Sample run. Programme JSON loaded in 11 ms and an author-and-title search over the full data with one result rendered in 2 ms on the test environment. These figures describe a local run. |
-| Physical Safari/iPhone and Microsoft Edge | Pending manual testing. Linux Chromium covered the browser automation and emulated phone sizes. |
+| Source data | The validator passed for 166 sessions and events, 1,326 presentations, 12 source fixtures and 87 technical room joins. An independent PDF extraction matched every coded presentation. |
+| Programme and navigation | The tests switched days, opened and closed time blocks, opened a session and a presentation, checked full ordered authors and room, returned to the parent and checked Escape and focus return. The old Explore address still opens Programme with search focused. |
+| Unified search | Keyword search matched an author and title, and combined Date, Area, Type and Room filters worked. The suite exercised the empty state, filter visibility, clearing back to browse, and preserving selections across navigation. |
+| My Agenda | Add and remove worked across views. Selections survived reload. The suite checked actual overlaps, adjoining endpoints, the shared poster window, time order and clear confirmation. |
+| PNG | Two talks and a dense selection of 20 posters each produced a single image. A 52-poster stress case used three numbered parts. Each downloaded 1080-pixel-wide PNG matched its preview. Canvas checks covered the complete title, room, code, shared time and text bounds. Short and dense exports were visually inspected. |
+| Layout and appearance | Passed at 375×812, 390×844, 430×932, 768×1024 and 1440×900. Programme, filters, details and My Agenda stayed within the viewport. Desktop and phone-width captures were visually reviewed. The refraction filter was active in Chromium, and the higher-contrast preference selected the solid fallback. |
+| Storage and fetch errors | Blocked or malformed storage, stale IDs, and a simulated programme load failure were exercised. The normal flow had no console errors or external asset requests. |
+| Physical-device check | Physical iPhone and Safari testing remains part of the manual acceptance checklist. |
 
-Commands:
+Run `node tests/browser.cjs` with the local HTTP server running. Use `python scripts/validate_programme.py --pdf /path/to/original-programme.pdf` to repeat the source check. The [manual acceptance checklist](manual-testing.md) covers the Windows update and phone preview.
 
-```sh
-python scripts/validate_programme.py --pdf /path/to/original-programme.pdf
-node tests/browser.cjs
-```
-
-See [the manual acceptance checklist](manual-testing.md) for Windows and phone testing and [data issues](data-issues.md) for source discrepancies. Test captures and downloaded PNGs are generated locally in `test-results/`.
+The navigation treatment follows [Apple’s materials guidance](https://developer.apple.com/design/human-interface-guidelines/materials) by applying the glass effects to controls and navigation. Browsers without the SVG backdrop filter use the translucent blur and edge highlights.
